@@ -1,0 +1,921 @@
+<---------------------------------- Before Optimizing , Takes more than 5 minutes to scan through 14M records and return hundreds of records ------------------->
+
+
+		SELECT Site.siteid, Site.OrgName, Site.SubOrg, Site.Location, Site.Admin, 
+				isNull(Total, 0) AS Total, isNull(LessHalf, 0) AS LessHalf, 
+				isNull(MoreHalf, 0) AS MoreHalf, isNull(Complete, 0) AS Complete,
+				isNull(FlaggedTotal, 0) AS FlaggedTotal,
+				Site.SiteID, Org.[Table] AS OrgID, 
+				isNull(Site.DefaultOrg, 'Master') AS DefaultOrg, 
+				isNull(Site.DefaultTypeGroup, 'Not Setup') AS DefaultTypeGroup,
+				ApplicModule.TblNo, isNull(SiteApplic.Assigned, 0) AS Assigned,
+				isNull(SiteApplic.NotApplicable, 0) AS NotApplicable,
+				
+				isNull(NotExported, 0) AS NotExported,
+				
+				isNull(Profile.QuestionCount, 0) AS QuestionCount, 
+				isNull(ApplicCount.ApplicCount, 0) AS ApplicCount
+		FROM Site WITH (NOLOCK)
+		
+			LEFT OUTER JOIN ApplicModule WITH (NOLOCK)
+			ON 	Site.DefaultOrg = ApplicModule.Org
+		
+			LEFT OUTER JOIN
+
+			(SELECT SiteFindingModule.OrgName, SiteFindingModule.Location,  
+				COUNT(AuditQns.TotalQns) AS Total, 
+				SUM(CASE WHEN AuditQns.AnsweredQns/AuditQns.TotalQns < 0.5 THEN 1 ELSE 0 END) AS LessHalf,
+				SUM(CASE WHEN AuditQns.AnsweredQns != AuditQns.TotalQns AND
+					AuditQns.AnsweredQns/AuditQns.TotalQns >= 0.5 THEN 1 ELSE 0 END) AS MoreHalf,
+				SUM(CASE WHEN AuditQns.AnsweredQns = AuditQns.TotalQns THEN 1 ELSE 0 END) AS Complete,
+				SUM(isNull(Flagged.Total, 0)) AS FlaggedTotal,
+				
+				SUM(isNull(Flagged.Total, 0)) - SUM(isNull(Exported.Exported, 0)) AS NotExported
+				
+				FROM (SELECT SiteApplicModule.OrgName, SiteApplicModule.Location,
+						SiteApplicModule.Module, SiteApplicModule.SiteApplicModuleID
+					FROM SiteApplicModule WITH (NOLOCK), AuditModule WITH (NOLOCK), 
+						AuditType WITH (NOLOCK)
+					WHERE SiteApplicModule.Applicable = 1
+					
+					
+						AND (SiteApplicModule.Frequency = 'Annual' OR SiteApplicModule.Frequency = 'Once Only' OR SiteApplicModule.Frequency = 'Biennial (Current Year)')
+					
+						AND SiteApplicModule.Module = AuditModule.Module
+						AND AuditModule.EHSType = AUditType.EHSType
+						AND AuditType.PowerType = 1
+						AND AuditModule.Archive = 0
+					) AS SiteFindingModule
+					
+					LEFT OUTER JOIN
+				
+				(SELECT SiteFindingModule.OrgName, SiteFindingModule.Location, SiteApplicModule.Module,
+				 Count(AuditQn.QNID) AS Total
+				FROM FindingQn WITH (NOLOCK), SiteFindingModule WITH (NOLOCK), 
+					FindingModule WITH (NOLOCK), AuditModule WITH (NOLOCK), AuditType WITH (NOLOCK),
+					AuditQn WITH (NOLOCK), Site WITH (NOLOCK), SiteApplicModule WITH (NOLOCK)
+				WHERE AnsCode = 2
+					AND SiteFindingModule.AuditRecNo = FindingQn.AuditRecNo
+					
+					AND SiteFindingModule.AuditRecNo = FindingModule.AuditRecNo
+					AND FindingModule.Status = 1
+	
+					AND SiteFindingModule.Module = AuditModule.Module 
+									
+					AND SiteFindingModule.OrgName = SiteApplicModule.OrgName
+					AND SiteFindingModule.Location = SiteApplicModule.Location
+				
+					AND SiteApplicModule.SiteApplicModuleID = SiteFindingModule.SiteApplicModuleID
+				
+					AND AuditModule.BusModApp = 1
+					AND AuditModule.Archive = 0
+					AND AuditModule.LastMod IS NOT NULL
+					AND AuditModule.EHSType = AuditType.EHSType
+					AND AuditModule.Module = AuditQn.Module
+					AND AuditQn.QnID = FindingQN.QNID
+					AND AuditQn.BusApp = 1
+					AND AuditModule.Archive=0
+				
+					
+					AND SiteFindingModule.location = Site.Location
+					AND SiteFindingModule.orgname = Site.OrgName
+					
+				
+					AND AuditType.PowerType >= 1
+				
+	
+				GROUP BY SiteFindingModule.OrgName, SiteFindingModule.Location, SiteApplicModule.Module) AS Flagged
+				
+				ON SiteFindingModule.OrgName = Flagged.OrgName
+					AND SiteFindingModule.Location = Flagged.Location
+					AND SiteFindingModule.Module = Flagged.Module
+
+				LEFT OUTER JOIN
+				
+				(SELECT SFM.OrgName, SFM.Location, SFM.Module, COUNT(*) AS Exported
+				FROM SiteFindingModule SFM WITH (NOLOCK), FindingModule FM WITH (NOLOCK), FindingQn FQ WITH (NOLOCK),
+					SiteApplicModule SAM WITH (NOLOCK), 
+					AuditModule AM WITH (NOLOCK), AuditQN AQ WITH (NOLOCK), AuditType AT WITH (NOLOCK),Site WITH (NOLOCK)
+				WHERE SAM.SiteApplicModuleID = SFM.SiteApplicModuleID
+					AND SFM.AuditRecNo = FQ.AuditRecNo
+					AND FQ.ExportATS != 0
+					AND AQ.Module = FQ.Module
+					AND AQ.QnID = FQ.QNID
+					AND AQ.BusApp = 1
+					AND AM.Module = SFM.Module
+					AND AM.BusModApp = 1
+					AND AM.LastMod IS NOT NULL
+					AND AM.Module = AQ.Module
+					AND AM.Archive=0
+					AND AM.EHSType = AT.EHSType
+					AND AT.PowerType = 1
+					AND FQ.AnsCode = 2
+					AND FM.AuditRecNo = SFM.AuditRecNo
+					AND FM.Status = 1
+				
+				
+				GROUP BY SFM.OrgName, SFM.Location, SFM.Module)AS Exported
+				
+				ON SiteFindingModule.OrgName = Exported.OrgName
+					AND SiteFindingModule.Location = Exported.Location
+					AND SiteFindingModule.Module = Exported.Module
+				
+				LEFT OUTER JOIN	
+				
+				(SELECT  SiteFindingModule.OrgName, SiteFindingModule.Location, SiteApplicModule.Module,
+					SiteApplicModule.SiteApplicModuleID,
+					SUM(FindingModule.TotalQns) AS TotalQns, 
+					SUM(FindingModule.CompleteQns) AS AnsweredQns
+				FROM SiteFindingModule WITH (NOLOCK), FindingModule WITH (NOLOCK),
+					SiteApplicModule WITH (NOLOCK), AuditModule WITH (NOLOCK), 
+					AuditType WITH (NOLOCK),Site WITH(NOLOCK)
+				WHERE SiteFindingModule.AuditRecNo = FindingModule.AuditRecNo
+					AND FindingModule.Status = 1
+					AND FindingModule.Module = AuditModule.Module
+					AND AuditModule.EHSType = AuditType.EHSType
+					AND AuditType.PowerType = 1
+									
+					AND SiteFindingModule.OrgName = SiteApplicModule.OrgName
+					AND SiteFindingModule.Location = SiteApplicModule.Location
+				
+					AND SiteApplicModule.SiteApplicModuleID = SiteFindingModule.SiteApplicModuleID
+				
+									
+				GROUP BY SiteFindingModule.OrgName, SiteFindingModule.Location, SiteApplicModule.Module,
+					SiteApplicModule.SiteApplicModuleID
+				HAVING 	SUM(FindingModule.TotalQns) != 0) AS AuditQns
+			
+				ON SiteFindingModule.SiteApplicModuleID = AuditQns.SiteApplicModuleID
+
+			
+			WHERE 1=1
+			
+			
+			GROUP BY SiteFindingModule.OrgName, SiteFindingModule.Location) 
+			AS Stats
+			
+			ON site.orgname = Stats.orgname
+				AND site.Location = Stats.Location
+			
+		
+			LEFT OUTER JOIN
+			(SELECT SiteApplicModule.OrgName, SiteApplicModule.Location, 
+				SUM(CASE WHEN SiteApplicModule.Applicable = 1 AND SiteApplicModule.RespPerson IS NOT NULL
+				 THEN 1 ELSE 0 END) AS Assigned, 
+
+				 				 
+				SUM(CASE WHEN SiteApplicModule.Applicable = 0 AND AuditModule.BusModApp = 1
+				 THEN 1 ELSE 0 END) AS NotApplicable
+				 
+			FROM SiteApplicModule WITH (NOLOCK), AuditModule WITH (NOLOCK), AuditType WITH (NOLOCK), Site WITH (NOLOCK)
+	
+			WHERE AuditModule.Archive=0
+				
+				AND AuditModule.LastMod IS NOT NULL
+				AND SiteApplicModule.Module = AuditModule.Module
+				AND AuditModule.EHSType = AuditType.EHSType
+				AND Site.OrgName = SiteApplicModule.OrgName
+				AND Site.Location = SiteApplicModule.Location
+			
+			
+				AND AuditType.PowerType = 1
+			
+				AND (SiteApplicModule.Frequency = 'Annual' OR SiteApplicModule.Frequency = 'Once Only' OR SiteApplicModule.Frequency = 'Biennial (Current Year)')
+				
+			GROUP BY SiteApplicModule.OrgName, SiteApplicModule.Location )
+			AS SiteApplic
+			
+			ON  Site.OrgName = SiteApplic.OrgName
+				AND Site.Location = SiteApplic.Location
+
+			LEFT OUTER JOIN
+	
+		(SELECT OrgName, Location, COUNT(module) AS QuestionCount
+		FROM (SELECT OrgName, Location, AuditModule.Module
+				FROM Site WITH (NOLOCK), AUditModule WITH (NOLOCK), AuditType WITH (NOLOCK)
+				WHERE Site.POWER_ON = 1
+					AND Site.PowerSuite_On = 1
+					AND Site.Archive = 0
+					
+					
+					AND AuditModule.LastMod IS NOT NULL
+					AND AuditModule.Archive=0
+					AND AuditModule.BusModapp=1
+					AND AuditModule.LastMod IS NOT NULL
+					AND AuditModule.EHSType = AuditType.EHSType
+				
+				
+					AND Site.DefaultTypeGroup = AuditType.TypeGroup
+				
+					AND AuditType.Primary_Type = 1
+					
+	 			
+					AND AuditType.PowerType = 1
+								
+					AND NOT EXISTS (SELECT *
+						FROM (SELECT Org, COUNT(*) AS NotApplic
+							FROM ApplicQN WITH (NOLOCK),  AuditQN WITH (NOLOCK)
+							WHERE ApplicQn.Module = AuditModule.Module
+								AND ApplicQn.Module = AuditQN.Module 
+								AND ApplicQn.QnID = AuditQN.QnID
+								AND AuditQN.BusApp = 1
+							GROUP BY Org) AS NA,
+						(SELECT COUNT(*) AS Applic
+						FROM AuditQN WITH (NOLOCK)
+						WHERE Module = AuditModule.Module
+						
+							AND AuditQn.State = 'Federal'
+							AND BusApp = 1) AS A
+						
+						WHERE NA.NotApplic >= A.Applic
+							AND Site.DefaultOrg = Org)
+					AND NOT EXISTS (SELECT *
+						FROM ApplicScheduleModule WITH (NOLOCK)
+						WHERE Site.DefaultOrg = ApplicScheduleModule.Org
+							AND AuditModule.Module = ApplicScheduleModule.Module)
+				
+				
+					AND (AuditModule.Frequency = 'Annual' OR AuditModule.Frequency = 'Once Only' OR AuditModule.Frequency = 'Biennial (Current Year)')
+				
+				UNION ALL
+				
+				SELECT OrgName, Location, AuditModule.Module
+				FROM Site WITH (NOLOCK), AUditModule WITH (NOLOCK), AuditType WITH (NOLOCK), ApplicScheduleModule WITH (NOLOCK)
+				WHERE Site.POWER_ON = 1
+					AND Site.PowerSuite_On = 1
+					AND Site.Archive = 0
+					
+					
+					AND AuditModule.LastMod IS NOT NULL
+					AND AuditModule.Archive=0
+					AND AuditModule.BusModapp=1
+					AND AuditModule.LastMod IS NOT NULL
+					AND AuditModule.EHSType = AuditType.EHSType
+				
+				
+					AND Site.DefaultTypeGroup = AuditType.TypeGroup
+				
+					AND AuditType.Primary_Type = 1
+					
+	 			
+					AND AuditType.PowerType = 1
+								
+					AND NOT EXISTS (SELECT *
+						FROM (SELECT Org, COUNT(*) AS NotApplic
+							FROM ApplicQN WITH (NOLOCK),  AuditQN WITH (NOLOCK)
+							WHERE ApplicQn.Module = AuditModule.Module
+								AND ApplicQn.Module = AuditQN.Module 
+								AND ApplicQn.QnID = AuditQN.QnID
+								AND AuditQN.BusApp = 1
+							GROUP BY Org) AS NA,
+						(SELECT COUNT(*) AS Applic
+						FROM AuditQN WITH (NOLOCK)
+						WHERE Module = AuditModule.Module
+						
+							AND AuditQn.State = 'Federal'
+							AND BusApp = 1) AS A
+						
+						WHERE NA.NotApplic >= A.Applic
+							AND Site.DefaultOrg = Org)
+	
+				
+				
+					AND Site.DefaultOrg = ApplicScheduleModule.Org
+				
+					AND AuditModule.Module = ApplicScheduleModule.Module
+				
+				
+					AND (ApplicScheduleModule.Frequency = 'Annual' OR ApplicScheduleModule.Frequency = 'Once Only' OR ApplicScheduleModule.Frequency= 'Biennial (Current Year)')
+				
+				) AS T
+				GROUP BY OrgName, Location
+				) AS Profile
+			ON Site.OrgName = Profile.OrgName
+				AND Site.Location = Profile.Location	
+
+		
+		
+			LEFT OUTER
+		
+			 JOIN
+		
+		(
+	SELECT OrgName, Location, COUNT(SiteApplicModuleID) AS ApplicCount
+	FROM (
+	SELECT OrgName, Location, SiteApplicModuleID, SUM(UE) AS UE, SUM(NotUE) AS NotUE
+	FROM (
+	SELECT SAM.orgName, SAM.Location, SAM.SiteApplicModuleID, 
+		SAM.Applicable AS isApplicable, FM.TotalQNs - FM.CompleteQns AS UE, FM.CompleteQns AS NotUE, 
+		FM.TotalQNs AS NumberApplicable 
+	
+	FROM FindingModule FM, SiteFindingModule SFM, SiteApplicModule SAM, AuditType AT, AuditModule AM,Site WITH(NOLOCK)
+	WHERE FM.AuditRecNo = SFM.AUditRecNo
+		AND SAM.Module = SFM.Module
+		AND SAM.OrgName = SFM.OrgName
+		AND SAM.Location = SFM.Location
+							
+		AND FM.Module = AM.Module
+		AND AM.EHSType = AT.EHSType
+		AND AT.PowerType = 1
+		AND AM.Archive = 0
+	
+		
+		
+			AND (SAM.Frequency = 'Annual' OR SAM.Frequency = 'Once Only' OR SAM.Frequency = 'Biennial (Current Year)')
+		
+	UNION ALL
+	SELECT SAM.orgName, SAM.Location, SAM.SiteApplicModuleID, 
+		SAM.Applicable AS isApplicable, 0 AS UE, 0 AS NotUE, 
+		1 AS NumberApplicable
+	
+	FROM SiteApplicModule SAM WITH (NOLOCK), AuditType AT WITH (NOLOCK), AuditModule AM WITH (NOLOCK),Site WITH(NOLOCK)
+	WHERE SAM.Module = AM.Module
+		AND AM.EHSType = AT.EHSType
+		AND AT.PowerType = 1
+		AND AM.Archive = 0
+		
+	
+		AND NOT EXISTS (SELECT *
+			FROM SiteFindingModule SFM WITH (NOLOCK)
+			WHERE SFM.Module = SAM.Module
+				AND SFM.OrgName = SAM.OrgName
+				AND SFM.Location = SAM.Location)
+	
+		
+		
+			AND (SAM.Frequency = 'Annual' OR SAM.Frequency = 'Once Only' OR SAM.Frequency = 'Biennial (Current Year)')
+		
+	) AS T
+	where isApplicable = 1
+	group by orgname, location, SiteApplicModuleID
+	) As T
+	GROUP BY orgname, location
+	
+	) AS ApplicCount
+
+		ON Site.OrgName = ApplicCount.OrgName
+			AND Site.Location = ApplicCount.Location	
+
+		, Org WITH (NOLOCK)
+			
+		WHERE Site.Archive = 0
+			AND Org.OrgName = Site.OrgName
+		
+			AND site.power_on = 1
+			AND Site.powersuite_on = 1
+			AND Org.archive=0
+			
+		
+			AND Site.DefaultTypeGroup IS NOT NULL	
+		
+	
+		
+		ORDER BY site.orgname, Site.SubOrg, site.location, ApplicModule.TblNo
+
+
+
+
+
+
+
+
+<--------------------------------------------- After Optimization , takes less than 10 seconds to scan and return the records ------------------------------------>
+
+<CFQUERY NAME="qGetRollupTotals" DATASOURCE="#ODBC#" TIMEOUT="30000" cachedwithin = "#CreateTimeSpan(1,0,0,0)#">
+		<!--- /* set drops of temp tables if they already exist */ --->
+IF OBJECT_ID('tempdb..##tmp_ApplicModule') IS NOT NULL DROP TABLE ##tmp_ApplicModule;
+IF OBJECT_ID('tempdb..##tmp_chklist') IS NOT NULL DROP TABLE ##tmp_chklist;
+IF OBJECT_ID('tempdb..##tmp_chklistprimary') IS NOT NULL DROP TABLE ##tmp_chklistprimary;
+IF OBJECT_ID('tempdb..##tmp_chklistbusmod') IS NOT NULL DROP TABLE ##tmp_chklistbusmod;
+IF OBJECT_ID('tempdb..##tmp_assigned') IS NOT NULL DROP TABLE ##tmp_assigned;
+IF OBJECT_ID('tempdb..##tmp_assignedLF') IS NOT NULL DROP TABLE ##tmp_assignedLF;
+IF OBJECT_ID('tempdb..##tmp_assignedType') IS NOT NULL DROP TABLE ##tmp_assignedType;
+IF OBJECT_ID('tempdb..##tmp_orgsite') IS NOT NULL DROP TABLE ##tmp_orgsite;
+IF OBJECT_ID('tempdb..##tmp_ltbAT') IS NOT NULL DROP TABLE ##tmp_ltbAT;
+
+<!--- /* get applicables */ --->
+select Org,TblNo
+into ##tmp_ApplicModule
+from  ApplicModule with (nolock);
+
+<!--- /* get checklists */ --->
+select am.module,am.BusModApp,am.LastMod,t.typegroup,t.Primary_Type,am.frequency,am.Primary_Module_ID,am.module_id
+into ##tmp_chklist
+from  auditmodule am with (nolock)
+join audittype t with (nolock) on t.ehstype=am.ehstype
+where t.powertype = 1
+and am.archive = 0;
+
+<!--- /* get checklists */ --->
+select am.module,am.BusModApp,am.LastMod,am.typegroup,am.Primary_Type,am.frequency,am.Primary_Module_ID,am.module_id
+into ##tmp_chklistbusmod
+from  ##tmp_chklist am with (nolock)
+where  am.busmodapp = 1;
+
+<!--- /* get audit types */ --->
+SELECT AuditName
+into ##tmp_ltbAT
+FROM ltbaudittype WITH (NOLOCK)
+<CFIF LimitAuditGroup IS NOT "">
+	WHERE AuditGroup = N'#LimitAuditGroup#'
+</cfif>; 
+
+<!--- /* get org/sites to report on */ --->
+select 
+  s.siteid
+, s.OrgName
+, s.SubOrg
+, s.[Location]
+, s.[Admin]
+, o.[Table] AS OrgID
+, isNull(s.DefaultOrg, 'Master') AS DefaultOrg
+, isNull(s.DefaultTypeGroup, 'Not Setup') AS DefaultTypeGroup
+, tmpA.TblNo
+into ##tmp_orgsite
+FROM Site s WITH (NOLOCK)
+join org o with (nolock) on o.orgname=s.orgname
+left join ##tmp_ApplicModule  tmpA on tmpA.org=s.DefaultOrg
+where s.powersuite_on = 1
+and s.power_on = 1
+and s.archive = 0
+and o.archive = 0
+and s.DefaultTypeGroup IS NOT NULL;
+
+<!--- /* assignments */ --->
+SELECT sam.OrgName, sam.Location,sam.Applicable,sam.RespPerson,cl.BusModApp,sam.module,sam.siteapplicmoduleid,sam.frequency,sam.BusRequired,cl.typegroup,cl.Primary_Type
+into ##tmp_assigned
+FROM SiteApplicModule sam WITH (NOLOCK)
+join ##tmp_chklist cl on cl.module=sam.module
+join ##tmp_orgsite os on os.orgname=sam.orgname and os.location=sam.location;
+
+<!--- /* assignments - limit frequency */ --->
+SELECT sam.OrgName, sam.Location,sam.Applicable,sam.RespPerson,sam.BusModApp,sam.module,sam.siteapplicmoduleid,sam.frequency,sam.BusRequired,sam.typegroup,sam.Primary_Type
+into ##tmp_assignedLF
+FROM ##tmp_assigned sam WITH (NOLOCK)
+<CFIF bLimitScheduled IS true>
+	WHERE sam.Frequency IN ('Annual','Once Only','Biennial (Current Year)')
+</CFIF>
+<CFIF bLimitRequired IS true>
+	AND sam.BusRequired = 1
+</CFIF>	
+;
+
+<!--- /* assignments assigned/na */ --->
+SELECT sam.OrgName, sam.Location
+,SUM(CASE WHEN sam.Applicable = 1 AND sam.RespPerson IS NOT NULL THEN 1 ELSE 0 END) AS Assigned 
+,SUM(CASE WHEN sam.Applicable = 0 AND sam.BusModApp = 1 THEN 1 ELSE 0 END) AS NotApplicable	 
+into ##tmp_assignedType
+FROM ##tmp_assigned sam WITH (NOLOCK)
+GROUP BY sam.OrgName, sam.Location;
+
+SELECT 
+  os.OrgID
+, os.siteid
+, os.OrgName
+, os.SubOrg
+, os.Location
+, os.Admin
+, os.SiteID
+, os.DefaultOrg 
+, os.DefaultTypeGroup
+, os.TblNo
+, isNull(Total, 0) AS Total
+, isNull(LessHalf, 0) AS LessHalf
+, isNull(MoreHalf, 0) AS MoreHalf
+, isNull(Complete, 0) AS Complete
+, isNull(SiteApplic.Assigned, 0) AS Assigned
+, isNull(SiteApplic.NotApplicable, 0) AS NotApplicable	
+, isNull(FlaggedTotal, 0) AS FlaggedTotal
+, isNull(NotExported, 0) AS NotExported				
+, isNull(Profile.QuestionCount, 0) AS QuestionCount 
+, isNull(ApplicCount.ApplicCount, 0) AS ApplicCount
+
+FROM ##tmp_orgsite os WITH (NOLOCK)
+
+
+LEFT JOIN <!--- /* stats */ --->
+(
+	SELECT 
+		  SiteFindingModule.OrgName
+		, SiteFindingModule.Location  
+		, COUNT(AuditQns.TotalQns) AS Total
+		, SUM(CASE WHEN AuditQns.AnsweredQns/AuditQns.TotalQns < 0.5 THEN 1 ELSE 0 END) AS LessHalf
+		, SUM(CASE WHEN AuditQns.AnsweredQns != AuditQns.TotalQns AND AuditQns.AnsweredQns/AuditQns.TotalQns >= 0.5 THEN 1 ELSE 0 END) AS MoreHalf
+		, SUM(CASE WHEN AuditQns.AnsweredQns = AuditQns.TotalQns THEN 1 ELSE 0 END) AS Complete
+		, SUM(isNull(Flagged.Total, 0)) AS FlaggedTotal
+		, SUM(isNull(Flagged.Total, 0)) - SUM(isNull(Exported.Exported, 0)) AS NotExported
+	FROM 
+	(
+		SELECT sam.OrgName, sam.Location, sam.Module, sam.SiteApplicModuleID
+		FROM ##tmp_assigned sam WITH (NOLOCK)
+		WHERE sam.Applicable = 1
+		<CFIF bLimitRequired IS true>
+			AND sam.BusRequired = 1
+		</CFIF>
+		<CFIF bLimitScheduled IS true>
+			AND (sam.Frequency IN ('Annual','Once Only','Biennial (Current Year)'))
+		</CFIF>
+	) AS SiteFindingModule
+	
+	LEFT JOIN
+	(
+		SELECT 
+			SiteFindingModule.OrgName
+			, SiteFindingModule.Location
+			, sam.Module
+			, Count(AuditQn.QNID) AS Total
+		FROM FindingQn WITH (NOLOCK)
+		JOIN SiteFindingModule WITH (NOLOCK) ON SiteFindingModule.AuditRecNo = FindingQn.AuditRecNo			
+		JOIN FindingModule WITH (NOLOCK) ON SiteFindingModule.AuditRecNo = FindingModule.AuditRecNo
+		JOIN AuditQn WITH (NOLOCK) ON  FindingModule.Module = AuditQn.Module AND AuditQn.QnID = FindingQN.QNID
+		JOIN ##tmp_assigned as sam  ON SiteFindingModule.OrgName = sam.OrgName AND sitefindingmodule.module=sam.module AND sitefindingmodule.siteapplicmoduleid=sam.siteapplicmoduleid
+		JOIN ##tmp_orgsite os ON os.orgname = sam.OrgName
+		<cfif len(trim(SiteIDLIst))>
+			join fn_CreateTableFromList('#SiteIDLIst#',',') Sitelist on Sitelist.items=os.SiteID 
+		</cfif>
+			AND os.Location = sam.Location	
+			<!--- /* this will likely be problematic, but we'll see */ ---><!---it was--->
+			<CFIF bUseSiteApplicModuleID IS true>
+				<!---AND sam.SiteApplicModuleID = SiteFindingModule.SiteApplicModuleID--->
+			<cfelse>
+				AND 
+				(
+					
+					(
+						SiteFindingModule.module = sam.module	
+						AND sam.Primary_Type = 1
+					)
+				
+					<CFIF bLinkModules IS true>
+						OR
+							(
+							select 
+							count(ccp.module) as num
+							from ##tmp_chklistbusmod ccp
+							where ccp.Module1 = sam.Module and SiteFindingModule.Module=ccp.module2
+						) > 0
+					</cfif>
+				)
+				<CFIF bEHSSite IS true>
+					AND sam.TypeGroup = os.DefaultTypeGroup <!--- /* I may need another join to site here? */ --->
+				</CFIF>
+			</cfif>	
+		WHERE AnsCode = 2
+		AND FindingModule.Status = 1
+		AND sam.BusModApp = 1
+		AND AuditQn.BusApp = 1	
+		<CFIF len(trim(LimitAuditGroup))>
+			AND SiteFindingModule.AuditType IN 
+			(
+				SELECT AuditName FROM ##tmp_ltbAT
+			)
+		</CFIF>		
+		<CFIF len(trim(OrgName))>
+			AND SiteFindingModule.OrgName = N'#OrgName#'
+		</cfif>	
+		<CFIF  len(trim(Location))>
+			AND SiteFindingModule.Location = N'#Location#'
+		</CFIF>	
+		<!--- <cfif len(trim(SiteIDLIst))>
+			AND os.SiteID IN (#SiteIDLIst#) /* may need that site join here!! */
+		</cfif> --->
+		GROUP BY SiteFindingModule.OrgName, SiteFindingModule.Location, sam.Module
+	) AS Flagged ON SiteFindingModule.OrgName = Flagged.OrgName AND SiteFindingModule.Location = Flagged.Location AND SiteFindingModule.Module = Flagged.Module
+
+	LEFT JOIN
+	(
+		SELECT 
+		    SFM.OrgName
+		  , SFM.Location
+		  , SFM.Module
+		  , COUNT(*) AS Exported
+		FROM SiteFindingModule SFM WITH (NOLOCK)  
+		JOIN FindingModule FM WITH (NOLOCK) ON FM.AuditRecNo = SFM.AuditRecNo
+		JOIN FindingQn FQ WITH (NOLOCK) ON SFM.AuditRecNo = FQ.AuditRecNo
+		JOIN ##tmp_assigned SAM WITH (NOLOCK) ON SAM.SiteApplicModuleID = SFM.SiteApplicModuleID
+		JOIN AuditQN AQ WITH (NOLOCK) ON AQ.Module = FQ.Module AND AQ.QnID = FQ.QNID AND sfm.Module = AQ.Module
+		JOIN ##tmp_orgsite os ON os.orgname = SFM.OrgName
+		<cfif len(trim(SiteIDLIst))>
+			join fn_CreateTableFromList('#SiteIDLIst#',',') Sitelist on Sitelist.items=os.SiteID 
+		</cfif>
+		WHERE FQ.ExportATS != 0
+		AND AQ.BusApp = 1
+		AND SAM.BusModApp = 1
+		AND FQ.AnsCode = 2
+		AND FM.Status = 1
+		<CFIF LimitAuditGroup IS NOT "">
+			AND SFM.AuditType IN 
+			(
+				SELECT AuditName FROM ##tmp_ltbAT
+			)
+		</cfif>
+		<CFIF len(trim(OrgName))>
+			AND SFM.OrgName = N'#OrgName#'
+		</cfif>	
+		<CFIF  len(trim(Location))>
+			AND SFM.Location = N'#Location#'
+		</CFIF>	
+		<!--- <cfif len(trim(SiteIDLIst))>
+			AND os.SiteID IN (#SiteIDLIst#) /* may need that site join here!! */
+		</cfif> --->
+		GROUP BY SFM.OrgName, SFM.Location, SFM.Module
+	) AS Exported ON SiteFindingModule.OrgName = Exported.OrgName
+					AND SiteFindingModule.Location = Exported.Location
+					AND SiteFindingModule.Module = Exported.Module
+	LEFT JOIN	
+	(
+		SELECT  
+			SiteFindingModule.OrgName
+			, SiteFindingModule.Location
+			, sam.Module
+			, sam.SiteApplicModuleID
+			, SUM(FindingModule.TotalQns) AS TotalQns 
+			, SUM(FindingModule.CompleteQns) AS AnsweredQns
+		FROM SiteFindingModule WITH (NOLOCK)
+		JOIN FindingModule WITH (NOLOCK) ON SiteFindingModule.AuditRecNo = FindingModule.AuditRecNo
+		JOIN ##tmp_assigned sam WITH (NOLOCK) ON SiteFindingModule.OrgName = sam.OrgName AND SiteFindingModule.Location = sam.Location 
+		JOIN ##tmp_orgsite os ON os.orgname = SiteFindingModule.OrgName
+		<cfif len(trim(SiteIDLIst))>
+			join fn_CreateTableFromList('#SiteIDLIst#',',') Sitelist on Sitelist.items=os.SiteID 
+		</cfif>
+		<CFIF bUseSiteApplicModuleID IS true>
+			AND sam.SiteApplicModuleID = SiteFindingModule.SiteApplicModuleID
+		<cfelse>
+			AND 
+			(
+					
+				(
+					SiteFindingModule.module = sam.module	
+				)
+				<CFIF bLinkModules IS true>
+					OR
+						(
+						select 
+						count(ccp.module) as num
+						from ##tmp_chklistbusmod ccp
+						where ccp.Module1 = sam.Module and SiteFindingModule.Module=ccp.module2
+					) > 0
+				</cfif>
+			)
+		</cfif>	
+		
+		WHERE FindingModule.Status = 1	
+		<CFIF LimitAuditGroup IS NOT "">
+			AND SiteFindingModule.AuditType IN 
+			(
+				SELECT AuditName FROM ##tmp_ltbAT
+			)
+		</cfif>
+		<CFIF len(trim(OrgName))>
+			AND SiteFindingModule.OrgName = N'#OrgName#'
+		</cfif>	
+		<CFIF  len(trim(Location))>
+			AND SiteFindingModule.Location = N'#Location#'
+		</CFIF>	
+		<!--- <cfif len(trim(SiteIDLIst))>
+			AND os.SiteID IN (#SiteIDLIst#) /* may need that site join here!! */
+		</cfif>					 --->
+		GROUP BY SiteFindingModule.OrgName, SiteFindingModule.Location, sam.Module,sam.SiteApplicModuleID
+		HAVING 	SUM(FindingModule.TotalQns) != 0
+	) AS AuditQns ON SiteFindingModule.SiteApplicModuleID = AuditQns.SiteApplicModuleID
+	GROUP BY SiteFindingModule.OrgName, SiteFindingModule.Location
+) AS Stats ON os.orgname = Stats.orgname AND os.Location = Stats.Location
+	
+	
+LEFT  JOIN <!--- /* SiteApplic */ --->
+(
+	SELECT 
+		  sam.OrgName
+		, sam.Location 
+		, SUM(CASE WHEN sam.Applicable = 1 AND sam.RespPerson IS NOT NULL THEN 1 ELSE 0 END) AS Assigned
+		, SUM(CASE WHEN sam.Applicable = 0 AND sam.BusModApp = 1 THEN 1 ELSE 0 END) AS NotApplicable
+	FROM ##tmp_assignedLF sam WITH (NOLOCK)
+	GROUP BY sam.OrgName, sam.Location
+) AS SiteApplic ON  os.OrgName = SiteApplic.OrgName AND os.Location = SiteApplic.Location
+
+
+LEFT JOIN <!--- /* profile */ --->
+(
+	SELECT 
+		OrgName
+		, Location
+		, COUNT(module) AS QuestionCount
+	FROM 
+	(
+		SELECT 
+			OrgName
+			, Location
+			, cbm.Module
+		FROM 
+		 ##tmp_orgsite oss
+		join  ##tmp_chklistbusmod cbm on  oss.DefaultTypeGroup = cbm.TypeGroup	
+		<cfif len(trim(SiteIDLIst))>
+			join fn_CreateTableFromList('#SiteIDLIst#',',') Sitelist on Sitelist.items=oss.SiteID 
+		</cfif>
+		WHERE  cbm.Primary_Type = 1	
+		<CFIF len(trim(OrgName))>
+			AND oss.OrgName = N'#OrgName#'
+		</cfif>	
+		<CFIF  len(trim(Location))>
+			AND oss.Location = N'#Location#'
+		</CFIF>	
+		<!--- <cfif len(trim(SiteIDLIst))>
+			AND oss.SiteID IN (#SiteIDLIst#) /* may need that site join here!! */ used the function above
+		</cfif>		 --->
+		<CFIF bEHSSite IS true> <!--- this join is utter shite --->
+			AND oss.DefaultTypeGroup = cbm.TypeGroup
+		</CFIF>
+		AND NOT EXISTS 
+		(
+			SELECT *
+			FROM 
+			(
+				SELECT 
+					Org
+					, COUNT(ApplicQn.qnid) AS NotApplic
+				FROM ApplicQN WITH (NOLOCK),  AuditQN WITH (NOLOCK)
+				WHERE ApplicQn.Module = cbm.Module
+				AND ApplicQn.Module = AuditQN.Module 
+				AND ApplicQn.QnID = AuditQN.QnID
+				AND AuditQN.BusApp = 1
+				GROUP BY Org
+			) AS NA
+			, 
+			(
+				SELECT COUNT(AuditQn.qnid) AS Applic
+				FROM AuditQN WITH (NOLOCK)
+				WHERE Module = cbm.Module
+				AND AuditQn.State = 'Federal'
+				AND BusApp = 1
+			) AS A
+			WHERE NA.NotApplic >= A.Applic
+			AND oss.DefaultOrg = Org
+		)
+		AND NOT EXISTS 
+		(
+			SELECT count(*) as num
+			FROM ApplicScheduleModule WITH (NOLOCK)
+			WHERE oss.DefaultOrg = ApplicScheduleModule.Org
+			AND cbm.Module = ApplicScheduleModule.Module)
+			<CFIF bLimitScheduled IS true>
+				AND (cbm.Frequency = 'Annual' OR cbm.Frequency = 'Once Only' OR cbm.Frequency = 'Biennial (Current Year)')
+			</CFIF>
+			<CFIF bEHSSite IS true>
+				UNION ALL
+				
+				SELECT OrgName, Location, cbm2.Module
+				FROM  ##tmp_orgsite oss2 WITH (NOLOCK)
+				join  ##tmp_chklistbusmod cbm2 on  oss2.DefaultTypeGroup = cbm2.TypeGroup	
+				join  ApplicScheduleModule WITH (NOLOCK) on  oss2.DefaultOrg = ApplicScheduleModule.Org and  cbm2.Module = ApplicScheduleModule.Module
+				<cfif len(trim(SiteIDLIst))>
+					join fn_CreateTableFromList('#SiteIDLIst#',',') Sitelist on Sitelist.items=oss2.SiteID 
+				</cfif>
+				WHERE  NOT EXISTS 
+				(
+					SELECT *
+					FROM 
+					(
+						SELECT 
+							Org
+							, COUNT(*) AS NotApplic
+						FROM ApplicQN WITH (NOLOCK)
+							, AuditQN WITH (NOLOCK)
+						WHERE ApplicQn.Module = cbm2.Module
+						AND ApplicQn.Module = AuditQN.Module 
+						AND ApplicQn.QnID = AuditQN.QnID
+						AND AuditQN.BusApp = 1
+						GROUP BY Org
+					) AS NA
+					,
+					(
+						SELECT COUNT(*) AS Applic
+						FROM AuditQN WITH (NOLOCK)
+						WHERE Module = cbm2.Module	
+						AND AuditQn.State = 'Federal'
+						AND BusApp = 1
+					) AS A		
+					WHERE NA.NotApplic >= A.Applic
+					AND oss2.DefaultOrg = Org
+				) <!--- /* end not exist */	 --->
+				<CFIF bLimitScheduled IS true>
+					AND (ApplicScheduleModule.Frequency = 'Annual' OR ApplicScheduleModule.Frequency = 'Once Only' OR ApplicScheduleModule.Frequency= 'Biennial (Current Year)')	
+				</cfif>
+				<CFIF len(trim(OrgName))>
+					AND oss2.OrgName = N'#OrgName#'
+				</cfif>	
+				<CFIF  len(trim(Location))>
+					AND oss2.Location = N'#Location#'
+				</CFIF>	
+				<!--- <cfif len(trim(SiteIDLIst))>
+					AND oss.SiteID IN (#SiteIDLIst#) /* may need that site join here!! */
+				</cfif>		 --->
+				
+			</cfif>
+		) AS T
+	GROUP BY OrgName, Location
+) AS Profile ON os.OrgName = Profile.OrgName AND os.Location = Profile.Location	
+
+<!--- /* appliccount */ --->
+<CFIF bFilterNoneRequired IS true>INNER<cfelse>LEFT</cfif> JOIN
+(
+	SELECT 
+		OrgName
+		, Location
+		, COUNT(SiteApplicModuleID) AS ApplicCount
+	FROM 
+	(
+		SELECT 
+			OrgName
+			, Location
+			, SiteApplicModuleID
+			, SUM(UE) AS UE
+			, SUM(NotUE) AS NotUE
+		FROM 
+		(
+			SELECT 
+				 SAM.orgName
+				, SAM.Location
+				, SAM.SiteApplicModuleID 
+				, SAM.Applicable AS isApplicable
+				, FM.TotalQNs - FM.CompleteQns AS UE
+				, FM.CompleteQns AS NotUE
+				, FM.TotalQNs AS NumberApplicable 
+			FROM FindingModule FM
+			JOIN SiteFindingModule SFM ON FM.auditrecno=SFM.auditrecno and SFM.module=FM.module  
+			JOIN ##tmp_assignedLF SAM ON SAM.Module = SFM.Module AND SAM.OrgName = SFM.OrgName AND SAM.Location = SFM.Location		
+			join ##tmp_chklist Am on FM.Module = AM.Module
+			<CFIF LimitAuditGroup IS NOT "">
+				AND SFM.AuditType IN (SELECT AuditName FROM ltbaudittype WITH (NOLOCK) WHERE AuditGroup = '#LimitAuditGroup#')
+			</CFIF>					
+			
+			<CFIF bLimitScheduled IS true>
+				AND (SAM.Frequency = 'Annual' OR SAM.Frequency = 'Once Only' OR SAM.Frequency = 'Biennial (Current Year)')
+			</CFIF>		
+			<CFIF bLimitRequired IS true>
+				AND SAM.BusRequired = 1
+			</CFIF>
+		<CFIF LimitAuditGroup IS "">	
+			
+			UNION ALL
+
+			SELECT 
+				SAM.orgName
+				, SAM.Location
+				, SAM.SiteApplicModuleID 
+				, SAM.Applicable AS isApplicable
+				, 0 AS UE
+				, 0 AS NotUE 
+				, 1 AS NumberApplicable
+	
+			FROM ##tmp_assignedLF SAM WITH (NOLOCK)
+
+			WHERE NOT EXISTS 
+			(
+				SELECT SFM.auditrecno
+				FROM SiteFindingModule SFM WITH (NOLOCK)
+				WHERE SFM.Module = SAM.Module
+				AND SFM.OrgName = SAM.OrgName
+				AND SFM.Location = SAM.Location
+			)
+			<CFIF bLimitScheduled IS true>
+				AND (SAM.Frequency = 'Annual' OR SAM.Frequency = 'Once Only' OR SAM.Frequency = 'Biennial (Current Year)')
+			</CFIF>
+			<CFIF bLimitRequired IS true>
+				AND SAM.BusRequired = 1
+			</CFIF>
+
+		</cfif>
+		) AS T
+		where isApplicable = 1
+		group by orgname, location, SiteApplicModuleID
+	) As T
+	GROUP BY orgname, location
+	
+) AS ApplicCount ON os.OrgName = ApplicCount.OrgName AND os.Location = ApplicCount.Location
+where 1=1 
+<!---If these are given, show ONLY these--->
+<cfif #orgname# neq "">
+    and os.orgname = N'#orgname#'
+</cfif>
+<cfif #suborgname# neq "">
+    and os.SubOrg = N'#suborgname#'
+</cfif>		
+ORDER BY os.orgname, os.SubOrg, os.location, os.TblNo;
+
+<!--- /* set drops of temp tables*/ --->
+DROP TABLE ##tmp_ApplicModule;
+DROP TABLE ##tmp_chklist;
+DROP TABLE ##tmp_chklistbusmod;
+DROP TABLE ##tmp_assigned;
+DROP TABLE ##tmp_assignedLF;
+DROP TABLE ##tmp_assignedType;
+DROP TABLE ##tmp_orgsite;
+DROP TABLE ##tmp_ltbAT;
+
+	</CFQUERY>
+
+
+
+
+
+

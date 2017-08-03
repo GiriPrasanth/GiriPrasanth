@@ -1,0 +1,221 @@
+<env:Envelope xmlns:env="http://Enhesa/Generic/V2/Reports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:cs="http://Enhesa/Generic/V2/Reports/CS" xmlns:sd="http://Enhesa/Generic/V2/Reports/SD" xmlns:dt="http://Enhesa/Generic/V2/Reports/DTQ" xmlns:au="http://Enhesa/Generic/V2/Reports/AU" xmlns:qn="http://Enhesa/Generic/V2/Reports/AP" xmlns:lg="http://Enhesa/Generic/V2/Reports/LG" xmlns:hd="http://Enhesa/Generic/V2/Reports/HD" xmlns:sq="http://Enhesa/Generic/V2/Reports/SCQ" xsi:schemaLocation="http://Enhesa/Generic/V2/Reports http://cdn.ehsmonitor.com/XmlSchemas/V2/EHS_Envelope_V02.xsd">
+<env:Header>
+<hd:MessageRef>59da3b9b-f621-4180-b7bf-2c1fc8ea05b8</hd:MessageRef>
+<hd:MessageName>ap_DZ_NAT_en</hd:MessageName>
+<hd:ResearchDate>2017-05-01</hd:ResearchDate>
+<hd:DataVersion>2.00</hd:DataVersion>
+<hd:ExtractionDate>2017-08-03T16:09:43</hd:ExtractionDate>
+<hd:ExtractedBy>developer@gensuitellc.com</hd:ExtractedBy>
+<hd:ExtractionRange>
+<hd:From>1900-01-01T12:01:01</hd:From>
+<hd:To>2017-07-26T18:03:00</hd:To>
+</hd:ExtractionRange>
+<hd:CustomerId>16</hd:CustomerId>
+<hd:CustomerName>GE</hd:CustomerName>
+<hd:Country>
+<hd:CountryCode>DZ</hd:CountryCode>
+<hd:Regions>
+<hd:RegionCode>NAT</hd:RegionCode>
+</hd:Regions>
+</hd:Country>
+<hd:Languages>
+<hd:LanguageCode>en</hd:LanguageCode>
+</hd:Languages>
+<hd:Industries>
+<hd:IndustryId>1</hd:IndustryId>
+</hd:Industries>
+<hd:HeadingSet>A_setOps_Industry_Requirements</hd:HeadingSet>
+<hd:ControlParameters>
+<hd:ReportsStatistics Type="Requirements">
+<hd:TargetPopulation>620</hd:TargetPopulation>
+<hd:Delivered>620</hd:Delivered>
+</hd:ReportsStatistics>
+<hd:ReportsStatistics Type="Regulations">
+<hd:TargetPopulation>143</hd:TargetPopulation>
+<hd:Delivered>132</hd:Delivered>
+</hd:ReportsStatistics>
+<hd:ReportsStatistics Type="Citations">
+<hd:TargetPopulation>858</hd:TargetPopulation>
+<hd:Delivered>485</hd:Delivered>
+</hd:ReportsStatistics>
+<hd:ReportsStatistics Type="Authorities">
+<hd:TargetPopulation>19</hd:TargetPopulation>
+<hd:Delivered>11</hd:Delivered>
+</hd:ReportsStatistics>
+<hd:ReportsStatistics Type="DecisionTreeQuestions">
+<hd:TargetPopulation>2</hd:TargetPopulation>
+<hd:Delivered>2</hd:Delivered>
+</hd:ReportsStatistics>
+<hd:ReportsStatistics Type="ScreeningQuestions">
+<hd:TargetPopulation>109</hd:TargetPopulation>
+<hd:Delivered>109</hd:Delivered>
+</hd:ReportsStatistics>
+<hd:ReportsStatistics Type="SupportingDocuments">
+<hd:TargetPopulation>279</hd:TargetPopulation>
+<hd:Delivered>241</hd:Delivered>
+</hd:ReportsStatistics>
+</hd:ControlParameters>
+</env:Header>
+<env:Reports>
+<env:Report xsi:type="qn:Rqmts">
+<qn:Rqmts>
+<qn:Rqmt>
+<qn:QnCode>DZQ00002</qn:QnCode>
+<qn:QnRef>DZQ00002</qn:QnRef>
+<qn:HeadingCode>030101</qn:HeadingCode>
+<qn:RegionCode>NAT</qn:RegionCode>
+<qn:SortIndex>1</qn:SortIndex>
+<qn:Txts>
+<qn:Txt LanguageCode="en">
+<qn:Qn>
+If the facility emits air pollutants, it is built, designed and run in such a way to avoid, prevent or reduce such emissions at the source.
+</qn:Qn>
+<qn:GuideNote>
+<p align=center>[DZQ00002]</p>NOTE: Emissions concern substances such as fluorides, cadmium, mercury, thallium, and their compounds, arsenic, selenium, chromate, chrome, cobalt, iron, nickel, ammonia, etc. The limit values for these emissions are stated in Annex 1 to Decree 06-138 as such: <br />- total dust (50 mg/Nm3); <br />- sulfur oxides (300 mg/Nm3); <br />- nitrogen oxides (300 mg/Nm3); <br />- nitrous oxide (300 mg/Nm3); <br />- hydrogen chloride and other inorganic chlorine compounds (50 mg/Nm3); <br />- fluorine and inorganic fluorine compounds (10 mg/Nm3); <br />- volatile organic compounds (except methane) (150 mg/Nm3); <br />- metals and metal compounds (5 mg/Nm3); <br />- cadmium, mercury, thallium and their compounds (0.25 mg/Nm3); <br />- arsenic, selenium, tellurium and their compounds other than those listed as carcinogens (1 mg/Nm3); <br />- antimony, chromium, cobalt, copper, tin, manganese, nickel, vanadium, zinc and their compounds other than those listed as carcinogens (5 mg/Nm3); <br />- phosphine and phosgene (1 mg/Nm3); <br />- hydrogen cyanide, bromine and inorganic gaseous compounds of chromium, chlorine, hydrogen sulfide (5 mg/Nm3); <br />- ammonia (50 mg/Nm3); <br />- asbestos (0.1 mg/Nm3); <br />- fibers other than asbestos (1 mg/Nm3).<p align=center style='font-size:11px'>If you have questions or feedback about this question please email ENHESA at: <a href='mailto:protocols@enhesa.com?Subject=EnhesaXML [DZQ00002]'>services@enhesa.com</a></p><p align=center style='font-size:11px'>© Enhesa -<a href='http://www.ehsmonitor.com/Generic/ap/fr/00000000/default.asp?link=disclaimer' target='_blank'><b>Legal Disclaimer</b></a></p>
+</qn:GuideNote>
+<qn:Revisions>
+<qn:VersionInfo>
+<qn:Version>1.12</qn:Version>
+<qn:EnhesaResearchDate>2017-05-01T00:00:00</qn:EnhesaResearchDate>
+<qn:EnhesaPublicationDate>2017-07-26T14:08:00</qn:EnhesaPublicationDate>
+<qn:ChangeType>0</qn:ChangeType>
+<qn:ChangeDescription/>
+<qn:IsMajorChange>false</qn:IsMajorChange>
+</qn:VersionInfo>
+<qn:VersionInfo>
+<qn:Version>1.01</qn:Version>
+<qn:EnhesaResearchDate>2013-08-01T00:00:00</qn:EnhesaResearchDate>
+<qn:EnhesaPublicationDate>2013-08-01T00:00:00</qn:EnhesaPublicationDate>
+<qn:ChangeType>1</qn:ChangeType>
+<qn:ChangeDescription/>
+<qn:IsMajorChange>true</qn:IsMajorChange>
+</qn:VersionInfo>
+</qn:Revisions>
+</qn:Txt>
+</qn:Txts>
+<qn:Domains/>
+<qn:RltdRegs>
+<qn:Reg Version="1">
+<qn:RegId>14047</qn:RegId>
+<qn:RltdCitations>
+<qn:CitationId Version="1">25435</qn:CitationId>
+</qn:RltdCitations>
+</qn:Reg>
+</qn:RltdRegs>
+<qn:RltdSupportingDocs/>
+<qn:RegLink>
+http://www.ehsmonitor.com/GE/ap/DZ/00000000/default.asp?cs=14052&r=126468&def=true
+</qn:RegLink>
+</qn:Rqmt>
+<qn:Rqmt>
+<qn:QnCode>DZQ00003</qn:QnCode>
+<qn:QnRef>DZQ00003</qn:QnRef>
+<qn:HeadingCode>030101</qn:HeadingCode>
+<qn:RegionCode>NAT</qn:RegionCode>
+<qn:SortIndex>2</qn:SortIndex>
+<qn:Txts>
+<qn:Txt LanguageCode="en">
+<qn:Qn>
+The facility ensures that the number of emission points or location of atmospheric discharges is as low as possible
+</qn:Qn>
+<qn:GuideNote>
+<p align=center>[DZQ00003]</p>NOTE: Emission points are the locations of fixed sources emitting gases, fumes, vapors, liquid or solid particles in the atmosphere. These are designated by the term " atmospheric discharges" <br />NOTE: Emissions concern substances such as fluorides, cadmium, mercury, thallium, and their compounds, arsenic, selenium, chromate, chrome, cobalt, iron, nickel, ammonia, etc. The limit values for these emissions are stated in Annex 1 to Decree 06-138 as such: <br />- total dust (50 mg/Nm3); <br />- sulfur oxides (300 mg/Nm3); <br />- nitrogen oxides (300 mg/Nm3); <br />- nitrous oxide (300 mg/Nm3); <br />- hydrogen chloride and other inorganic chlorine compounds (50 mg/Nm3); <br />- fluorine and inorganic fluorine compounds (10 mg/Nm3); <br />- volatile organic compounds (except methane) (150 mg/Nm3); <br />- metals and metal compounds (5 mg/Nm3); <br />- cadmium, mercury, thallium and their compounds (0.25 mg/Nm3); <br />- arsenic, selenium, tellurium and their compounds other than those listed as carcinogens (1 mg/Nm3); <br />- antimony, chromium, cobalt, copper, tin, manganese, nickel, vanadium, zinc and their compounds other than those listed as carcinogens (5 mg/Nm3); <br />- phosphine and phosgene (1 mg/Nm3); <br />- hydrogen cyanide, bromine and inorganic gaseous compounds of chromium, chlorine, hydrogen sulfide (5 mg/Nm3); <br />- ammonia (50 mg/Nm3); <br />- asbestos (0.1 mg/Nm3); <br />- fibers other than asbestos (1 mg/Nm3).<p align=center style='font-size:11px'>If you have questions or feedback about this question please email ENHESA at: <a href='mailto:protocols@enhesa.com?Subject=EnhesaXML [DZQ00003]'>services@enhesa.com</a></p><p align=center style='font-size:11px'>© Enhesa -<a href='http://www.ehsmonitor.com/Generic/ap/fr/00000000/default.asp?link=disclaimer' target='_blank'><b>Legal Disclaimer</b></a></p>
+</qn:GuideNote>
+<qn:Revisions>
+<qn:VersionInfo>
+<qn:Version>1.12</qn:Version>
+<qn:EnhesaResearchDate>2017-05-01T00:00:00</qn:EnhesaResearchDate>
+<qn:EnhesaPublicationDate>2017-07-26T14:08:00</qn:EnhesaPublicationDate>
+<qn:ChangeType>0</qn:ChangeType>
+<qn:ChangeDescription/>
+<qn:IsMajorChange>false</qn:IsMajorChange>
+</qn:VersionInfo>
+<qn:VersionInfo>
+<qn:Version>1.01</qn:Version>
+<qn:EnhesaResearchDate>2013-08-01T00:00:00</qn:EnhesaResearchDate>
+<qn:EnhesaPublicationDate>2013-08-01T00:00:00</qn:EnhesaPublicationDate>
+<qn:ChangeType>1</qn:ChangeType>
+<qn:ChangeDescription/>
+<qn:IsMajorChange>true</qn:IsMajorChange>
+</qn:VersionInfo>
+</qn:Revisions>
+</qn:Txt>
+</qn:Txts>
+<qn:Domains/>
+<qn:RltdRegs>
+<qn:Reg Version="1">
+<qn:RegId>14047</qn:RegId>
+<qn:RltdCitations>
+<qn:CitationId Version="1">25437</qn:CitationId>
+</qn:RltdCitations>
+</qn:Reg>
+</qn:RltdRegs>
+<qn:RltdSupportingDocs/>
+<qn:RegLink>
+http://www.ehsmonitor.com/GE/ap/DZ/00000000/default.asp?cs=14052&r=126468&def=true
+</qn:RegLink>
+</qn:Rqmt>
+<qn:Rqmt>
+<qn:QnCode>DZQ00004</qn:QnCode>
+<qn:QnRef>DZQ00004</qn:QnRef>
+<qn:HeadingCode>030101</qn:HeadingCode>
+<qn:RegionCode>NAT</qn:RegionCode>
+<qn:SortIndex>3</qn:SortIndex>
+<qn:Txts>
+<qn:Txt LanguageCode="en">
+<qn:Qn>
+If the facility treats its emissions, treatment installations are designed, run and maintained in such a way to reduce to a minimum the periods where they cannot operate at full capacity.
+</qn:Qn>
+<qn:GuideNote>
+<p align=center>[DZQ00004]</p>NOTE: Emissions concern substances such as fluorides, cadmium, mercury, thallium, and their compounds, arsenic, selenium, chromate, chrome, cobalt, iron, nickel, ammonia, etc. The limit values for these emissions are stated in Annex 1 to Decree 06-138 as such: <br />- total dust (50 mg/Nm3); <br />- sulfur oxides (300 mg/Nm3); <br />- nitrogen oxides (300 mg/Nm3); <br />- nitrous oxide (300 mg/Nm3); <br />- hydrogen chloride and other inorganic chlorine compounds (50 mg/Nm3); <br />- fluorine and inorganic fluorine compounds (10 mg/Nm3); <br />- volatile organic compounds (except methane) (150 mg/Nm3); <br />- metals and metal compounds (5 mg/Nm3); <br />- cadmium, mercury, thallium and their compounds (0.25 mg/Nm3); <br />- arsenic, selenium, tellurium and their compounds other than those listed as carcinogens (1 mg/Nm3); <br />- antimony, chromium, cobalt, copper, tin, manganese, nickel, vanadium, zinc and their compounds other than those listed as carcinogens (5 mg/Nm3); <br />- phosphine and phosgene (1 mg/Nm3); <br />- hydrogen cyanide, bromine and inorganic gaseous compounds of chromium, chlorine, hydrogen sulfide (5 mg/Nm3); <br />- ammonia (50 mg/Nm3); <br />- asbestos (0.1 mg/Nm3); <br />- fibers other than asbestos (1 mg/Nm3).<p align=center style='font-size:11px'>If you have questions or feedback about this question please email ENHESA at: <a href='mailto:protocols@enhesa.com?Subject=EnhesaXML [DZQ00004]'>services@enhesa.com</a></p><p align=center style='font-size:11px'>© Enhesa -<a href='http://www.ehsmonitor.com/Generic/ap/fr/00000000/default.asp?link=disclaimer' target='_blank'><b>Legal Disclaimer</b></a></p>
+</qn:GuideNote>
+<qn:Revisions>
+<qn:VersionInfo>
+<qn:Version>1.12</qn:Version>
+<qn:EnhesaResearchDate>2017-05-01T00:00:00</qn:EnhesaResearchDate>
+<qn:EnhesaPublicationDate>2017-07-26T14:08:00</qn:EnhesaPublicationDate>
+<qn:ChangeType>0</qn:ChangeType>
+<qn:ChangeDescription/>
+<qn:IsMajorChange>false</qn:IsMajorChange>
+</qn:VersionInfo>
+<qn:VersionInfo>
+<qn:Version>1.01</qn:Version>
+<qn:EnhesaResearchDate>2013-08-01T00:00:00</qn:EnhesaResearchDate>
+<qn:EnhesaPublicationDate>2013-08-01T00:00:00</qn:EnhesaPublicationDate>
+<qn:ChangeType>1</qn:ChangeType>
+<qn:ChangeDescription/>
+<qn:IsMajorChange>true</qn:IsMajorChange>
+</qn:VersionInfo>
+</qn:Revisions>
+</qn:Txt>
+</qn:Txts>
+<qn:Domains/>
+<qn:RltdRegs>
+<qn:Reg Version="1">
+<qn:RegId>14047</qn:RegId>
+<qn:RltdCitations>
+<qn:CitationId Version="1">25438</qn:CitationId>
+</qn:RltdCitations>
+</qn:Reg>
+</qn:RltdRegs>
+<qn:RltdSupportingDocs>
+<qn:SupportingDocId>33706</qn:SupportingDocId>
+</qn:RltdSupportingDocs>
+<qn:RegLink>
+http://www.ehsmonitor.com/GE/ap/DZ/00000000/default.asp?cs=14052&r=126468&def=true
+</qn:RegLink>
+</qn:Rqmt>
+<qn:Rqmt>
+<qn:QnCode>DZQ00005</qn:QnCode>
+<qn:QnRef>DZQ00005</qn:QnRef>
+<qn:HeadingCode>030101</qn:HeadingCode>
+<qn:RegionCode>NAT</qn:RegionCode>
+<qn:SortIndex>4</qn:SortIndex>
+<qn:Txts>
+<qn:Txt LanguageCode="en">
+<qn:Qn>
+If the facility pre-treats its emissions, it has installed chimneys or evacuation devices to evacuate the treated emissions, and that are designed in such a way to allow for a good dispersion of emissions in the atmosphere.
+</qn:Qn>
+<qn:GuideNote>
+<p align=center>[DZQ00005]</p>NOTE: Emissions concern substances such as fluorides, cadmium, mercury, thallium, and their compounds, arsenic, selenium, chromate, chrome, cobalt, iron, nickel, ammonia, etc. The limit values for these emissions are stated in Annex 1 to Decree 06-138 as such: <br />- total dust (50 mg/Nm3); <br />- sulfur oxides (300 mg/Nm3); <br />- nitrogen oxides (300 mg/Nm3); <br />- nitrous oxide (300 mg/Nm3); <br />- hydrogen chloride and other inorganic chlorine compounds (50 mg/Nm3); <br />- fluorine and inorganic fluorine compounds (10 mg/Nm3); <br />- volatile organic compounds (except methane) (150 mg/Nm3); <br />- metals and metal compounds (5 mg/Nm3); <br />- cadmium, mercury, thallium and their compounds (0.25 mg/Nm3); <br />- arsenic, selenium, tellurium and their compounds other than those listed as carcinogens (1 mg/Nm3); <br />- antimony, chromium, cobalt, copper, tin, manganese, nickel, vanadium, zinc and their compounds other than those listed as carcinogens (5 mg/Nm3); <br />- phosphine and phosgene (1 mg/Nm3); <br />- hydrogen cyanide, bromine and inorganic gaseous compounds of chromium, chlorine, hydrogen sulfide (5 mg/Nm3); <br />- ammonia (50 mg/Nm3); <br />- asbestos (0.1 mg/Nm3); <br />- fibers other than asbestos (1 mg/Nm3).<p align=center style='font-size:11px'>If you have questions or feedback about this question please email ENHESA at: <a href='mailto:protocols@enhesa.com?Subject=EnhesaXML [DZQ00005]'>services@enhesa.com</a></p><p align=center style='font-size:11px'>© Enhesa -<a href='http://www.ehsmonitor.com/Generic/ap/fr/00000000/default.asp?link=disclaimer' target='_blank'><b>Legal Disclaimer</b></a></p>
+</qn:GuideNote>
