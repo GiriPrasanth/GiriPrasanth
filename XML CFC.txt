@@ -1,0 +1,286 @@
+
+<cfcomponent>
+<cfsetting requestTimeOut="10000000">
+	<cfobject name="variables.json" component="#request.library.cfc.dotpath#.json" />
+
+	<cffunction access="public" name="init" output="false" hint="ODBC setup">
+		<cfargument name="odbc" type="string" required="yes" hint="ODBC where the tables are stored.">
+			<cfset this.odbc = arguments.odbc>
+		<cfreturn this>
+	</cffunction>
+
+	<cffunction name="getDeliverablesData" access="remote" returntype="any" output="false" returnformat="json">
+		<cfargument name="clientid" type="string" required="no">
+		<cfargument name="proxyServerName" type="string" required="yes">
+		<cfargument name="proxyPortNumber" type="string" required="yes">
+		<cfhttp url="https://enhesaxmlv2.ehsmonitor.com/service.svc/GetDeliverables/#arguments.clientid#/" username="developer" password="gensuite" proxyserver="#proxyServerName#" proxyport="#proxyPortNumber#" method="GET" result="headingsCode">
+		</cfhttp>
+		
+		<cfset deliverablesXML = REReplace( headingsCode.filecontent, "^[^<]*", "", "all" )/>
+		<cfset deliverablesXML = xmlparse(ToString(deliverablesXML))>
+		
+		<cfset packageNodes = XmlSearch(deliverablesXML, "//env:Envelope/env:Reports/env:Report/dl:Contracts/dl:Contract/dl:PackageCode")/>
+<!--- 		<cfset countryCodeNodes = XmlSearch(deliverablesXML, "//env:Envelope/env:Reports/env:Report/dl:Contracts/dl:Contract/dl:CountryCode")/>
+		<cfset regionNodes = XmlSearch(deliverablesXML, "//env:Envelope/env:Reports/env:Report/dl:Contracts/dl:Contract/dl:RegionCode")/>
+		<cfset languageNodes = XmlSearch(deliverablesXML, "//env:Envelope/env:Reports/env:Report/dl:Contracts/dl:Contract/dl:LanguageCode")/> --->
+
+	<!--- 	<cfset countryNodes = XmlSearch(deliverablesXML, "//env:Envelope/env:Reports/env:Report/cl:CountryAndRegionCodeList/cl:Country/cl:CountryTxts/cl:CountryTxt")/>
+
+
+		<cfset countryNodesNoDupes = [] />
+		<cfloop index="i" from="1" to="#arrayLen(countryNodes)#">
+		<cfif not ArrayContains(countryNodesNoDupes,countryNodes[i].xmltext)>
+			    <cfset arrayAppend(countryNodesNoDupes, countryNodes[i].xmltext) />
+			</cfif>
+		</cfloop>
+
+		<cfset sortArray = ArraySort(countryNodesNoDupes, "textnocase", "asc") />
+		<cfdump var="#countryNodesNoDupes#"  />
+
+
+		<cfloop index="i" from="1" to="#arrayLen(countryNodesNoDupes)#">
+		<cfoutput>#countryNodesNoDupes[i]#</cfoutput></cfloop> --->
+
+
+
+
+
+		<cfset packageNodesNoDupes = [] />
+		<cfloop index="i" from="1" to="#arrayLen(packageNodes)#">
+		<cfif not ArrayContains(packageNodesNoDupes,packageNodes[i].xmltext)>
+			    <cfset arrayAppend(packageNodesNoDupes, packageNodes[i].xmltext) />
+			</cfif>
+		</cfloop>
+
+		<cfset sortArray = ArraySort(packageNodesNoDupes, "textnocase", "asc") />
+		<cfdump var="#packageNodesNoDupes#"  />
+		<cfloop index="i" from="1" to="#arrayLen(packageNodesNoDupes)#">
+		<cfoutput>#packageNodesNoDupes[i]#</cfoutput></cfloop>
+
+
+<!--- 		<cfset countryCodeNodesNoDupes = [] />
+		<cfloop index="i" from="1" to="#arrayLen(countryCodeNodes)#">
+		<cfif not ArrayContains(countryCodeNodesNoDupes,countryCodeNodes[i].xmltext)>
+			    <cfset arrayAppend(countryCodeNodesNoDupes, countryCodeNodes[i].xmltext) />
+			</cfif>
+		</cfloop> --->
+<!--- 
+		<cfset sortArray = ArraySort(countryCodeNodesNoDupes, "textnocase", "asc") />
+		<cfdump var="#countryCodeNodesNoDupes#"  />
+
+
+		<cfloop index="i" from="1" to="#arrayLen(countryCodeNodesNoDupes)#">
+		<cfoutput>#countryCodeNodesNoDupes[i]#</cfoutput></cfloop>
+
+
+		<cfset regionNodesNoDupes = [] />
+		<cfloop index="i" from="1" to="#arrayLen(regionNodes)#">
+		<cfif not ArrayContains(regionNodesNoDupes,regionNodes[i].xmltext)>
+			    <cfset arrayAppend(regionNodesNoDupes, regionNodes[i].xmltext) />
+			</cfif>
+		</cfloop> --->
+
+
+<!--- 		<cfloop index="i" from="1" to="#arrayLen(regionNodesNoDupes)#">
+		<cfoutput>#regionNodesNoDupes[i]#</cfoutput></cfloop>
+
+		Region Codes:
+		<cfset sortArray = ArraySort(regionNodesNoDupes, "textnocase", "asc") />
+		<cfdump var="#regionNodesNoDupes#" /> --->
+
+<!--- 
+		<cfset languageNodesNoDupes = [] />
+		<cfloop index="i" from="1" to="#arrayLen(languageNodes)#">
+		<cfif not ArrayContains(languageNodesNoDupes,languageNodes[i].xmltext)>
+			    <cfset arrayAppend(languageNodesNoDupes, languageNodes[i].xmltext) />
+			</cfif>
+		</cfloop> --->
+<!--- 
+
+		<cfset sortArray = ArraySort(languageNodesNoDupes, "textnocase", "asc") />
+		<cfdump var="#languageNodesNoDupes#" />
+
+		<cfloop index="i" from="1" to="#arrayLen(languageNodesNoDupes)#">
+		<cfoutput>#languageNodesNoDupes[i]#</cfoutput></cfloop> --->
+
+
+		<cfset local.result = structNew() />
+
+		<cfset local.result.package = packageNodesNoDupes /><!--- 
+		<cfset local.result.country = countryNodesNoDupes />
+		<cfset local.result.countrycode = countryCodeNodesNoDupes />
+		<cfset local.result.region = regionNodesNoDupes />
+		<cfset local.result.language = languageNodesNoDupes /> --->
+		
+		<cfcontent reset="yes">
+		<cfreturn variables.json.encode(local.result) />
+	</cffunction>
+
+
+	<cffunction name="getHeaderData" access="public" returntype="any" output="false">
+		<cfargument name="clientid" type="string" required="no">
+		<cfargument name="langcode" type="string" required="no">
+		<cfargument name="proxyServerName" type="string" required="yes">
+		<cfargument name="proxyPortNumber" type="string" required="yes">
+		<cfhttp url="https://enhesaxmlv2.ehsmonitor.com/service.svc/GetHeadingCodes/#arguments.clientid#/#arguments.langcode#" username="developer" proxyserver="#proxyServerName#" proxyport="#proxyPortNumber#" password="gensuite" method="GET" result="headingsCode">
+		</cfhttp>
+
+		<cfset headingXML = REReplace( headingsCode.filecontent, "^[^<]*", "", "all" )/>
+		<cfset headingXML = xmlparse(headingXML)>
+
+		<cfreturn headingXML />
+	</cffunction>
+
+	<cffunction name="getQuestionData" access="public" returntype="any" output="false">
+		<cfargument name="clientid" type="string" required="no">
+		<cfargument name="langCode" type="string" required="no">
+		<cfargument name="packCode" type="string" required="no">
+		<cfargument name="counCode" type="string" required="no">
+		<cfargument name="regCode" type="string" required="no">
+		<cfargument name="ResearchDate" type="string" required="no">
+		<cfargument name="proxyServerName" type="string" required="yes">
+		<cfargument name="proxyPortNumber" type="string" required="yes">
+		<!--- <cfhttp url="https://enhesaxmlv2.ehsmonitor.com/service.svc/GetClosedBox/#arguments.clientid#/#arguments.packCode#/#arguments.counCode#/#arguments.regCode#/#arguments.langCode#/#arguments.ResearchDate#" proxyserver="#proxyServerName#" proxyport="#proxyPortNumber#" username="developer" password="gensuite" method="GET" result="qnData"> --->
+		<cfhttp url="https://enhesaxmlv2.ehsmonitor.com/service.svc/GetClosedBox/#arguments.clientid#/#arguments.packCode#/#arguments.counCode#/#arguments.regCode#/#arguments.langCode#" proxyserver="#proxyServerName#" proxyport="#proxyPortNumber#" username="developer" password="gensuite" method="GET" result="qnData">
+		</cfhttp>
+		
+		
+		<cfset qnXML = REReplace( qnData.filecontent, "^[^<]*", "", "all" )/>
+		<cfset qnXML = xmlparse(ToString(qnXML))>
+		<cfreturn qnXML />
+	</cffunction>
+
+	<cffunction name="getClientIDs" access="remote" returntype="any" output="false">
+		<cfquery name="qGetClientIDs" datasource="powersuiteweb">
+			select distinct pv.vendor, ecd.vendorcustid
+			from enhesa_content_details ecd  with (nolock)
+			left join PWA_ltbVendor pv 
+			on ecd.vendorcustid = pv.vendorcustid
+			where ecd.vendorcustid is not null
+		</cfquery>
+		<cfreturn qGetClientIDs />
+	</cffunction>
+
+	<cffunction name="getEHSTypesByClientID" access="remote" returntype="any" output="false" returnformat="json">
+		<cfargument name="clientID" type="string" required="true" />
+			<cfset var results = structNew()>
+			<cfset var ehsTypes = arrayNew(1)>
+
+			<cfquery name="local.qGetEHSTypes" datasource="#request.powersuiteodbc#">
+				select distinct ecd.ehstype
+				from enhesa_content_details ecd  with (nolock)
+				left join PWA_ltbVendor pv 
+				on ecd.vendorcustid = pv.vendorcustid
+				where ecd.vendorcustid='#clientID#'
+			</cfquery>
+            <cfcontent reset="yes">
+			<cfreturn variables.json.encode(local.qGetEHSTypes) />
+		</cffunction>
+
+	<cffunction name="getEnhesaContentDetails" access="remote" returntype="any" returnformat="json" output="false">
+		<cfargument name="vendorcustid" type="string" required="true" />
+		<cfargument name="ehstype" type="string" required="true" />
+		<cfquery name="local.qGetEnhesaContentDetails" datasource="#request.powersuiteodbc#">
+			select countryname, languagecode, regioncode, countrycode,ResearchDate
+			from enhesa_content_details ecd  with (nolock)
+			where ecd.vendorcustid='#arguments.vendorcustid#'
+			and ehstype='#arguments.ehstype#'
+		</cfquery>
+		<cfcontent reset="yes">
+		<cfreturn variables.json.encode(local.qGetEnhesaContentDetails) />
+	</cffunction>
+
+	<cffunction name="getCountries" access="remote" returntype="any" output="false">
+		<cfquery name="qGetCountries" datasource="#request.powersuiteodbc#">
+			select distinct Country
+			from ltbCountry with (nolock)
+		</cfquery>
+		<cfreturn qGetCountries />
+	</cffunction>
+
+
+	<cffunction name="convertXmlToStruct" access="public" returntype="struct" output="false" hint="Parse raw XML response body into ColdFusion structs and arrays and return it.">
+		<cfargument name="xmlNode" type="string" required="true" />
+		<cfargument name="str" type="struct" required="true" />
+		<!---Setup local variables for recurse: --->
+		<cfset var i = 0 />
+		<cfset var axml = arguments.xmlNode />
+		<cfset var astr = arguments.str />
+		<cfset var n = "" />
+		<cfset var tmpContainer = "" />
+		<cfset axml = REReplace( axml, "^[^<]*", "", "all" )/>
+		<cfset axml = XmlSearch(XmlParse(ToString(axml)),"/node()")>
+		<cfset axml = axml[1] />
+		<!--- For each children of context node: --->
+		<cfloop from="1" to="#arrayLen(axml.XmlChildren)#" index="i">
+			<!--- Read XML node name without namespace: --->
+			<cfset n = replace(axml.XmlChildren[i].XmlName, axml.XmlChildren[i].XmlNsPrefix&":", "") />
+			<!--- If key with that name exists within output struct ... --->
+			<cfif structKeyExists(astr, n)>
+				<!--- ... and is not an array... --->
+				<cfif not isArray(astr[n])>
+					<!--- ... get this item into temp variable, ... --->
+					<cfset tmpContainer = astr[n] />
+					<!--- ... setup array for this item beacuse we have multiple items with same name, ... --->
+					<cfset astr[n] = arrayNew(1) />
+					<!--- ... and reassing temp item as a first element of new array: --->
+					<cfset astr[n][1] = tmpContainer />
+				<cfelse>
+					<!--- Item is already an array: --->
+				</cfif>
+				<cfif arrayLen(axml.XmlChildren[i].XmlChildren) gt 0>
+					<!--- recurse call: get complex item: --->
+					<cfset astr[n][arrayLen(astr[n])+1] = ConvertXmlToStruct(axml.XmlChildren[i], structNew()) />
+				<cfelse>
+					<!--- else: assign node value as last element of array: --->
+					<cfset astr[n][arrayLen(astr[n])+1] = axml.XmlChildren[i].XmlText />
+				</cfif>
+			<cfelse>
+				<!---This is not a struct. This may be first tag with some name.This may also be one and only tag with this name.--->
+				<!---If context child node has child nodes (which means it will be complex type): --->
+				<cfif arrayLen(axml.XmlChildren[i].XmlChildren) gt 0>
+				<!--- recurse call: get complex item: --->
+					<cfset astr[n] = ConvertXmlToStruct(axml.XmlChildren[i], structNew()) />
+				<cfelse>
+					<cfif IsStruct(aXml.XmlAttributes) AND StructCount(aXml.XmlAttributes)>
+						<cfset at_list = StructKeyList(aXml.XmlAttributes)>
+						<cfloop from="1" to="#listLen(at_list)#" index="atr">
+							<cfif ListgetAt(at_list,atr) CONTAINS "xmlns:">
+								<!--- remove any namespace attributes--->
+								<cfset Structdelete(axml.XmlAttributes, listgetAt(at_list,atr))>
+							</cfif>
+						</cfloop>
+						<!--- if there are any atributes left, append them to the response--->
+						<cfif StructCount(axml.XmlAttributes) GT 0>
+							<cfset astr['_attributes'] = axml.XmlAttributes />
+						</cfif>
+					</cfif>
+					<!--- else: assign node value as last element of array: --->
+					<!--- if there are any attributes on this element--->
+					<cfif IsStruct(aXml.XmlChildren[i].XmlAttributes) AND StructCount(aXml.XmlChildren[i].XmlAttributes) GT 0>
+						<!--- assign the text --->
+						<cfset astr[n] = axml.XmlChildren[i].XmlText />
+						<!--- check if there are no attributes withxmlns: , we dont want namespaces to be in the response--->
+						<cfset attrib_list = StructKeylist(axml.XmlChildren[i].XmlAttributes) />
+						<cfloop from="1" to="#listLen(attrib_list)#" index="attrib">
+							<cfif ListgetAt(attrib_list,attrib) CONTAINS "
+							xmlns:">
+								<!--- remove any namespace attributes--->
+								<cfset Structdelete(axml.XmlChildren[i].XmlAttributes, listgetAt(attrib_list,attrib))>
+							</cfif>
+						</cfloop>
+						<!--- if there are any atributes left, append them to the response--->
+						<cfif StructCount(axml.XmlChildren[i].XmlAttributes) GT 0>
+							<cfset astr[n&'_attributes'] = axml.XmlChildren[i].XmlAttributes />
+						</cfif>
+					<cfelse>
+						<cfset astr[n] = axml.XmlChildren[i].XmlText />
+					</cfif>
+				</cfif>
+			</cfif>
+		</cfloop>
+		<!--- return struct: --->
+		<cfreturn astr />
+	</cffunction>
+
+</cfcomponent>

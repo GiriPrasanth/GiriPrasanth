@@ -1,0 +1,436 @@
+<!--- 
+Purpose		:	File to Parse through the XML content for Sabic and have it formatted in table structures
+Author		: 	Giri Prasanth
+Date		:	March 2017
+--->
+<cfsetting requestTimeOut="10000000">
+<cfset ODBC ="CC_DEMO">
+<cfparam name="url.TblInsert" default="0">
+<cfoutput>
+
+<cfset request.browsercheck.setmode('11') /><cfcontent reset="true" /><!doctype html>
+<html class="gs">
+	<head>
+		<cfmodule template="#request.library.customtags.virtualpath#jqueryfiles.cfm" />
+		<cfmodule template="#request.library.customTags.virtualPath#bootstrap.cfm"includealerts="1" />
+	</head>
+</cfoutput>
+
+<body>
+
+<cffile action = "read"  
+    file = "\\isi7.smq.cl.datapipe.net\gensuite3\web\inetpub\wwwrootstage\powersuite\ehspower\XMLFIles\SABIC_DOT.xml"  
+    variable = "Data"
+	charset="utf-8">
+
+
+<cfset qnXML = REReplace( Data, "^[^<]*", "", "all" )/>
+<cfset qnXML = xmlparse(ToString(qnXML))>	
+<cfset SectionNodes = XmlSearch(qnXML, "//Record/Section")/>
+<cfset EhsNodes = XmlSearch(qnXML, "//Record")/>
+
+<cfoutput>
+<cfset qn_new = QueryNew("Ehstype,Mmodule,LastmodDate,headingcode,qnid,qn,qnguide,SectionTitle,qnversioninfo,RegCitLink,Regulatory,Qnreviseddate,
+qnstate,subsection,VendorQnid,ReportGroup,AuditPrep",
+"varchar,varchar,Date,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar,Date,varchar,varchar,varchar,varchar,varchar")>
+<cfloop from="1" to="#ArrayLen(SectionNodes)#" index="j"> <!--- Code By Giri Oct 2016--->
+	<cfset regidlist="">
+		<cfloop from="1" to="#ArrayLen(SectionNodes[j]["Question"])#"  index="i">
+			<cfset QueryAddRow(qn_new) />	
+			<cfset ehstype=ReplaceNoCase(EhsNodes[j]["EHSType"].xmltext,"®","","All")>
+			<cfset ehstype=ReplaceNoCase(EhsNodes[j]["EHSType"].xmltext,"CheckPoint","","All")>
+			<cfset QuerySetCell(qn_new,"Ehstype","#LTrim(ehstype)#")>
+			<cfset state = SectionNodes[j]["Question"][i]["State"].xmltext>
+			<cfif state eq "Federal">
+				<cfset module= EhsNodes[j]["Module"].xmltext>
+			<cfelse>
+				<cfset module= EhsNodes[j]["Module"].xmltext & ' ' &  '(' & state & ')'>
+			</cfif>
+			<cfset QuerySetCell(qn_new,"Mmodule","#module#")>
+			<cfset QuerySetCell(qn_new,"ReportGroup","#EhsNodes[j]["ReportGroup"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"AuditPrep","#EhsNodes[j]["AuditPrep"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"LastmodDate","#EhsNodes[j]["LastModDate"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"headingcode","#left(SectionNodes[j]["SectionNo"].xmltext,4)#") />
+			<cfset QuerySetCell(qn_new,"SectionTitle","#SectionNodes[j]["SectionTitle"].xmltext#")>
+			<cfset qnid = SectionNodes[j]["Question"][i]["QnID"].xmltext>
+			<cfset QuerySetCell(qn_new,"qnid","#left(SectionNodes[j]["SectionNo"].xmltext,4)#.#ListGetAt(qnid,ListLen(qnid,'.') -1,'.')#")>
+			<cfif ArrayLen(SectionNodes[j]["Question"][i]["RegCit"]) GTE 1>
+				<cfset RegCitLink = "">
+				<cfloop from="1" to="#ArrayLen(SectionNodes[j]["Question"][i]["RegCit"])#" index="k">
+					<cfset RegCit = SectionNodes[j]["Question"][i]["RegCit"][k].xmltext>
+					<cfset Reglink = SectionNodes[j]["Question"][i]["URL"][k].xmltext>
+					<cfset RegCitLink = RegCitLink & '<a href="#Reglink#" target="_blank">#RegCit#</a><BR>'>
+				</cfloop>
+			</cfif>
+			<cfset QuerySetCell(qn_new,"RegCitLink","#RegCitLink#")> 
+			<cfset qnTxt = SectionNodes[j]["Question"][i]["QuestionText"].xmltext>
+			<cfif qnTxt neq "">
+				<cfif qnTxt contains "Cite:">
+					<cfset qnTxt=rtrim(RemoveChars(qnTxt,Find("Cite:",qnTxt),Len(qnTxt)))>
+				</cfif>
+				<cfset qnTxt=rtrim(RemoveChars(qnTxt,'1',Find(' ', qnTxt)))>
+			<cfelse>
+				<cfset qnTxt="There is not Question Text here">
+			</cfif>	
+			<cfset QuerySetCell(qn_new,"qn","#qnTxt#")>
+			<cfset QuerySetCell(qn_new,"qnguide","#SectionNodes[j]["Question"][i]["Guide"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"Qnreviseddate","#SectionNodes[j]["Question"][i]["RevisedDate"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"Regulatory","#SectionNodes[j]["Question"][i]["Regulatory"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"qnstate","#SectionNodes[j]["Question"][i]["State"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"qnversioninfo","#SectionNodes[j]["Question"][i]["QnVersion"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"subsection","#SectionNodes[j]["Question"][i]["subsection"].xmltext#")>
+			<cfset QuerySetCell(qn_new,"VendorQnid","#SectionNodes[j]["Question"][i]["QnID"].xmltext#")>
+		</cfloop>
+</cfloop>
+</cfoutput>
+
+<cfquery name="qAuditType" Dbtype="Query">
+	Select DISTINCT EHSTYPE FROM qn_new
+</cfquery>
+<cfloop query="qAuditType" startrow="1" endrow="#qAuditType.Recordcount#">
+	<cfquery name="qGetEHSTYPE" Datasource="#ODBC#">
+		SELECT * FROM AUDITTYPE WITH (NOLOCK) WHERE EHSTYPE = LTRIM(replace('#qAuditType.EHSTYPE#',char(174),' '))
+	</cfquery>
+	<CFIF qGetEHSTYPE.Recordcount eq 0>
+		<div class="panel panel-primary">
+			<div class="panel-heading" style="font-size:20px">Mapping of AuditType</div>
+				<div class="panel-body" style="font-size:15px">
+					EHSType	: <cfoutput>#qAuditType.EHSTYPE#</cfoutput> <BR>
+					SortNo	: Null	<BR>
+					DocLink	: Null	<BR>
+					TypeGroup	: <cfoutput>#qAuditType.EHSTYPE#</cfoutput>	<BR>
+					Primary_Type	:	1	<BR>	
+					MXWasChecked	:	1	<BR>
+					MXHasDouble	:	0	<BR>
+					MXWasUpdated	:	0	<BR>
+					MXEncode	:	Null	<BR>
+					PowerType	:	1	<BR>
+					Verified	:	1	<BR>
+				</div>	
+			</div>		
+		</div>
+		<cfif url.TblInsert eq 1>	 
+		   <cfquery name="insertintoAuditType" datasource="#ODBC#">
+			Insert into AuditType
+			(	EHSType ,
+				SortNo ,
+				DocLink ,
+				TypeGroup ,
+				Primary_Type ,
+				MXWasChecked ,
+				MXHasDouble ,
+				MXWasUpdated ,
+				MXEncode ,
+				PowerType ,
+				Verified 
+			)
+			VALUES
+			(
+				LTRIM(replace('#qAuditType.EHSTYPE#',char(174),' ')),
+				Null,
+				Null,
+				Null,
+				1,
+				1,
+				0,
+				0,
+				Null,
+				1,
+				1
+			)
+			</cfquery> 
+		</cfif>	
+	</cfif> 
+</cfloop>
+
+<cfquery name="qAuditmodule" Dbtype="Query">
+	Select distinct Mmodule, EHSTYPE,LastmodDate,REPORTGROUP,AUDITPREP FROM qn_new
+</cfquery>
+<cfloop query="qAuditmodule" startrow="1" endrow="#qAuditmodule.Recordcount#">
+	<cfquery name="qGetModule" Datasource="#ODBC#">
+		SELECT * FROM AUDITMODULE WITH (NOLOCK) WHERE MODULE = <cfqueryparam value="#qAuditmodule.Mmodule#" cfsqltype="CF_SQL_VARCHAR">
+	</cfquery>
+	<CFIF qGetModule.Recordcount eq 0>
+		<div class="panel panel-primary">
+			<div class="panel-heading" style="font-size:20px">Mapping of Audit Module</div>
+				<div class="panel-body" style="font-size:15px">
+					<cfoutput>
+					SortNo :	NULL <BR>
+					Module :	#qAuditmodule.Mmodule# <BR>
+					EHSType :	#qAuditmodule.EHSTYPE# <BR>
+					FileSpec :	NULL <BR>
+					FindingTbl :	NULL <BR>
+					LastMod :	#qAuditmodule.LastmodDate# <BR>
+					Resourcelink :	NULL <BR>
+					EnflexURL :		NULL <BR>
+					BNAURL :	NULL <BR>
+					CrossRef :	NULL <BR>
+					AnsType :	1	<BR>
+					BusModApp :	1	<BR>
+					Introduction :	0	<BR>
+					Rulebook :	0	<BR>
+					Applicability :	NULL <BR>
+					GEQn :	0 <BR>
+					Archive :  0 <BR>
+					ReportGroup : #qAuditmodule.REPORTGROUP# <BR>
+					AuditPrep :	#qAuditmodule.AuditPrep# <BR>	
+					MXWasChecked :0 <BR>
+					MXHasDouble : 0 <BR>
+					MXWasUpdated :0 <BR>
+					MXEncode :NULL <BR>
+					Frequency :NULL <BR>
+					Default_DueDate :NULL <BR>
+					Primary_Module_ID :NULL <BR>
+					Targeted :1 <BR>
+					EnableSharing :0 <BR>
+					Provider :	'SABIC' <BR>
+					AllowAdhocInspection : NULL <BR>
+					EHSCritical : NULL <BR>
+					TrainingCertReqd : NULL <BR>
+					UploadDate : NOW() <BR>
+					Lastcalldate : NULL <BR>
+					topic : NULL <BR>
+					CRExport : NULL 
+					</cfoutput>
+				</div>	
+			</div>		
+		</div>
+		<cfif url.TblInsert eq 1>
+			<cfquery name="insertintoAuditModule" datasource="#ODBC#">
+				Insert into AuditMODULE
+				(	SortNo,
+					Module,
+					EHSType,
+					FileSpec,
+					FindingTbl,
+					LastMod,
+					Resourcelink,
+					EnflexURL,
+					BNAURL,
+					CrossRef,
+					AnsType,
+					BusModApp,
+					Introduction,
+					Rulebook,
+					Applicability,
+					GEQn,
+					Archive,
+					ReportGroup,
+					AuditPrep,
+					MXWasChecked,
+					MXHasDouble,
+					MXWasUpdated,
+					MXEncode,
+					Frequency,
+					Default_DueDate,
+					Primary_Module_ID,
+					Targeted,
+					EnableSharing,
+					Provider,
+					AllowAdhocInspection,
+					EHSCritical,
+					TrainingCertReqd,
+					UploadDate,
+					Lastcalldate,
+					topic,
+					CRExport
+				)
+				VALUES
+				(
+					NULL,
+					N'#qAuditmodule.Mmodule#',
+					LTRIM(replace('#qAuditmodule.EHSTYPE#',char(174),' ')),
+					NULL,
+					NULL,
+					'#qAuditmodule.LastmodDate#',
+					NULL,
+					NULL,
+					NULL,
+					NULL,
+					1,
+					1,
+					0,
+					0,
+					Null,
+					0,
+					0,
+					'#qAuditmodule.REPORTGROUP#',
+					'#qAuditmodule.AuditPrep#',
+					0,
+					0,
+					0,
+					NULL,
+					NULL,
+					NULL,
+					NULL,
+					1,
+					0,
+					'SABIC',
+					NULL,
+					NULL,
+					NULL,
+					getDate(),
+					NULL,
+					NULL,
+					NULL
+				)
+			</cfquery>
+		</cfif>	
+	</CFIF> 
+</cfloop>
+<cftransaction isolation="serializable">
+	<cfloop query="qn_new" startrow="1" endrow="#qn_new.Recordcount#">
+		<!--- <cfquery name="qGetQn" Datasource="#ODBC#">
+			SELECT MODULE,QNID,STATE,QNVERSION FROM AUDITQN WITH (NOLOCK) 
+			WHERE MODULE = <cfqueryparam value="#qn_new.Mmodule#" cfsqltype="CF_SQL_VARCHAR">
+			AND Qnid = <cfqueryparam value="#qn_new.qnid#" cfsqltype="CF_SQL_VARCHAR">
+			AND STATE=<cfqueryparam value="#qn_new.qnstate#" cfsqltype="CF_SQL_VARCHAR">
+			AND QNVERSION=<cfqueryparam value="#qn_new.qnversioninfo#" cfsqltype="CF_SQL_VARCHAR">
+		</cfquery> --->
+		<!--- <CFIF qGetQn.Recordcount eq 0> --->
+			<div class="panel panel-primary">
+				<div class="panel-heading" style="font-size:20px">Mapping of AuditQN</div>
+					<div class="panel-body" style="font-size:15px">
+					<cfoutput>
+						Module :#qn_new.Mmodule#<BR>
+						SectionNo :#qn_new.HeadingCode#<BR>
+						Section :#qn_new.SectionTitle#<br>
+						QnID :#qn_new.qnid#<br>
+						QnSortNo :#qn_new.currentrow#<br>
+						Question :#qn_new.qn#<br>
+						RegCit :#qn_new.RegCitLink#<br>
+						CrossRef :Null <br>
+						Guide :#qn_new.qnguide#<br>
+						RegYN :1<br>
+						GuideNote :1<br>
+						New :0<br>
+						GEQn :0<br>
+						BusQn :0<br>
+						BusApp :1<br>
+						JumpID :null <br>
+						QnWeight :1<br>
+						RepeatStartID :null<br>
+						RepeatEndID :null<br>
+						LastUpdate :#qn_new.LastmodDate#<br>
+						FindingType :null<br>
+						MXWasChecked :0<br>
+						MXHasDouble :0<br>
+						MXWasUpdated :0<br>
+						MXEncode :null<br>
+						State :#qn_new.qnstate#<br>
+						CrossRefID :null <br>
+						AddressedBy :0<br>
+						AddressedByDefault :null <br>
+						AddressedByAnsText :null<br>
+						BLA :0<br>
+						CopiedFromId :null<br>
+						MajorHazard :null<br>
+						CriticalControl :null<br>
+						commentReq :0<br>
+						HelpText :null<br>
+						QnVersion :#qn_new.qnversioninfo#<br>
+						SubSection :#qn_new.subsection#<br>
+						CustomScore :null<br>
+						AnswerOption :null<br>
+						VendorQnID :#qn_new.VendorQnid#<br>
+					</cfoutput>	
+					</div>	
+				</div>		
+			</div>
+			<cfif url.TblInsert eq 1>
+				<cfquery name="insertintoAuditQn" datasource="#ODBC#">
+					Insert into AuditQN
+					(	Module ,
+						SectionNo ,
+						Section ,
+						QnID ,
+						QnSortNo ,
+						Question ,
+						RegCit ,
+						CrossRef ,
+						Guide ,
+						RegYN ,
+						GuideNote ,
+						New ,
+						GEQn ,
+						BusQn ,
+						BusApp ,
+						JumpID ,
+						QnWeight ,
+						RepeatStartID ,
+						RepeatEndID ,
+						LastUpdate ,
+						FindingType ,
+						MXWasChecked ,
+						MXHasDouble ,
+						MXWasUpdated ,
+						MXEncode ,
+						State ,
+						CrossRefID ,
+						AddressedBy ,
+						AddressedByDefault ,
+						AddressedByAnsText ,
+						BLA ,
+						CopiedFromId ,
+						MajorHazard ,
+						CriticalControl ,
+						commentReq ,
+						HelpText ,
+						QnVersion ,
+						SubSection ,
+						CustomScore ,
+						AnswerOption ,
+						VendorQnID 
+					)
+					VALUES
+					(
+						N'#qn_new.Mmodule#',
+						#qn_new.HeadingCode#,
+						N'#qn_new.SectionTitle#',
+						'#qn_new.qnid#',
+						#qn_new.currentrow#,
+						N'#qn_new.qn#',
+						N'#qn_new.RegCitLink#',
+						NULL,
+						N'#qn_new.qnguide#',
+						1,
+						1,
+						0,
+						0,
+						0,
+						1,
+						NULL,
+						1,
+						NULL,
+						NULL,
+						'#qn_new.LastmodDate#',
+						NULL,
+						0,
+						0,
+						0,
+						NULL,
+						'#qn_new.qnstate#',
+						NULL,
+						0,
+						NULL,
+						NULL,
+						0,
+						NULL,
+						NULL,
+						NULL,
+						0,
+						NULL,
+						'#qn_new.qnversioninfo#',
+						'#qn_new.subsection#',
+						NULL,
+						NULL,
+						N'#qn_new.VendorQnid#'
+					)
+				</cfquery>
+			</cfif>	 
+		<!--- </cfIF>	--->
+	</cfloop>
+</cftransaction>	
+
+</body>
+</html>

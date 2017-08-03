@@ -1,0 +1,914 @@
+<script type="text/javascript">
+		$(function(){
+
+			//If the EHStype dropdown is empty, hide it, otherwise show it
+			if ($("#EHSType option[value!='']").length == 0) 
+			{
+			    $(".EHSType").hide();
+			}
+			else
+			{
+				$(".EHSType").show();
+			}
+
+			//Client dropdown
+			$(document).on('change', '#clientID', function(){
+
+				$.ajax({
+					type: 'post',
+					url: '<cfoutput>#request.library.cfc.virtualpath#</cfoutput>apps/power/xmlforpower.cfc',
+					data: {
+						method: 'getEHSTypesByClientID',
+						clientid: $(this).val()
+					},
+					dataType: 'json',
+					success: function(data){
+						//x = data;
+						//console.log(data.data.ehstype);
+						$('#EHSType').empty();
+						$.each(data.data.ehstype, function(index, value) {
+						     $('#EHSType').append('<option id="' + value + '">' + value + '</option>');
+						});
+						$(".EHSType").show();
+					},
+					error: function(jqXHR, textStatus, errorThrown){
+						alert("There was a problem parsing the XML. " + errorThrown);
+					}
+				});
+
+				$('#errorMsgHolder').html('');
+
+				$('.xmlSelects').hide();
+
+				$('.loadingXMLSelects').show();
+
+				$.ajax({
+					type: 'post',
+					url: '<cfoutput>#request.library.cfc.virtualpath#</cfoutput>apps/power/xmlforpower.cfc',
+					data: {
+						method: 'getDeliverablesData',
+						clientid: $(this).val(),
+						proxyServerName: $(this).data("proxyservername") ,
+						proxyPortNumber: $(this).data("proxyportnumber")
+					},
+					dataType: 'json',
+					success: function(xml){
+					console.log(xml);
+					if ( xml.PACKAGE.length == 0 )
+					{
+						$('#errorMsgHolder').html('No XML data was returned for this client.')
+						$('.xmlSelects').hide();
+						$('.loadingXMLSelects').hide();
+						return false;
+					}
+					$('#packCode').empty();
+					$.each(xml.PACKAGE, function(index, value) {
+					     $('#packCode').append('<option id="' + value + '">' + value + '</option>');
+					});
+			
+					setTimeout(function(){ getEnhesaDetails($("#clientID").val(), $("#EHSType").val()); }, 3000);
+					
+					$('.xmlSelects').show();
+					$('.loadingXMLSelects').hide();
+
+					},
+					error: function(jqXHR, textStatus, errorThrown){
+						alert("There was a problem parsing the XML. " + errorThrown);
+						$('.loadingXMLSelects').hide();
+					}
+				});
+			});
+			
+			//EhsType dropdown
+			$(document).on('change', '#EHSType', function(){
+		  		if ($(this).val() != '' ) {
+		            $(".EHSType").show();
+		        } else {
+		            $(".EHSType").hide();
+		        }
+				$('#errorMsgHolder').html('');
+
+				$('.xmlSelects').hide();
+
+				$('.loadingXMLSelects').show();
+
+				setTimeout(function(){ getEnhesaDetails($("#clientID").val(), $("#EHSType").val()); }, 3000);
+			});
+
+			//Package code dropdown
+			$(document).on('change', '#packCode', function(){
+				$('#errorMsgHolder').html('');
+
+				$('.xmlSelects').hide();
+
+				$('.loadingXMLSelects').show();
+
+				setTimeout(function(){ getEnhesaDetails($("#clientID").val(), $("#EHSType").val()); }, 3000);
+			});
+
+		});
+
+			function getEnhesaDetails(client, ehstype){
+				$.ajax({
+					type: 'post',
+					url: '<cfoutput>#request.library.cfc.virtualpath#</cfoutput>apps/power/xmlforpower.cfc',
+					data: {
+						method: 'getEnhesaContentDetails',
+						vendorcustid: client,
+						ehstype: ehstype
+					},
+					dataType: 'json',
+					success: function(data){
+						//x = data;
+						$('.xmlSelects').show();
+						$('.loadingXMLSelects').hide();
+					if (data.recordcount >= 1) {
+						$("#counCode").val(data.data.countrycode);
+						$("#country").val(data.data.countryname);
+						$("#regCode").val(data.data.regioncode);
+						$("#langCode").val(data.data.languagecode);
+						$("#researchdate").val(data.data.researchdate);
+					}
+						
+					},
+					error: function(jqXHR, textStatus, errorThrown){
+						$('.xmlSelects').show();
+						$('.loadingXMLSelects').hide();
+						alert("There was a problem parsing the XML. " + errorThrown);
+					}
+				});
+			}
+		</script>
+
+		<cfif insertData eq true>
+			<!--- Call Headings Code Obj: --->
+			<cfset headingXML = powerObj.getHeaderData(clientid="#clientid#", langcode="#langcode#", proxyServerName="#proxyServerName#", proxyPortNumber="#proxyPortNumber#") />
+
+			<!--- Call Qn Data Code Obj: --->
+			<cfset qnXML = powerObj.getQuestionData(clientid="#clientid#", packCode="#form.packCode#", regCode="#form.regCode#", counCode="#form.counCode#",langcode="#langcode#", ResearchDate="#form.ResearchDate#", proxyServerName="#proxyServerName#", proxyPortNumber="#proxyPortNumber#") />
+			
+			<cfset errorMsg = XmlSearch(qnXML, "//env:Envelope/env:Header/hd:ControlParameters/hd:ReportsStatistics/hd:Error/")/>
+
+			<cfif !ArrayIsEmpty(errorMsg)>
+ 				<cfdump var="#errorMsg[1].xmlText#" />
+			No data was found. Please try again.
+				<cfabort />
+			</cfif>
+			<cfset arrNodes = XmlSearch(qnXML, "//env:Reports/env:Report/qn:Rqmts/qn:Rqmt/")/>
+			<cfset chkarrNodes = XmlSearch(headingXML, "//env:Reports/env:Report/hg:Headings/hg:Heading/")/>
+			<cfset chkRegArrNodes = XmlSearch(qnXML, "//env:Reports/env:Report/lg:Regs/lg:Reg/")/>
+			<cfset ResearchDate = XmlSearch(qnXML, "//env:Header/")/>
+			<cfset ScreeningQns = XmlSearch(qnXML, "//env:Reports/env:Report/sq:ScrngQns/sq:ScrngQn/")/>
+			
+			
+			<cfloop from="1" to="#ArrayLen(ResearchDate)#" index="i">
+			<cfoutput>
+				<cfset RDate = #ResearchDate[i]["hd:ResearchDate"].xmltext#>
+			</cfoutput>
+			</cfloop>
+			
+			<cfoutput>
+					<div class="client">
+						<cfset clientid = #headingXML["Envelope"]["Header"]["CustomerId"]#>
+						#clientid.xmltext#
+						<cfswitch expression="#clientid.xmltext#">  
+							<cfcase value="16">  
+								Client is GE
+							</cfcase>  
+							<cfcase value="375">  
+								Client is GE CPSO
+							</cfcase>
+							<cfcase value="516">  
+								Client is GE Energy
+							</cfcase>  
+							<cfcase value="247">  
+								Client is GE Energy Products
+							</cfcase> 
+							<cfcase value="502">  
+								Client is GE Lighting  
+							</cfcase>  
+							<cfcase value="156">  
+								Client is Ingersoll Rand
+							</cfcase>
+							<cfcase value="175">  
+								Client is NBCU
+							</cfcase>
+							<cfcase value="611">  
+								Client is Perrigo 
+							</cfcase>
+							<cfcase value="245">  
+								Client is SABIC  
+							</cfcase>
+							<cfcase value="496">  
+								Client is AngloGold Ashanti (AGA)
+							</cfcase>
+						</cfswitch>  
+					</div>
+				
+				</cfoutput>					
+				
+			<cfoutput>
+				<cfset mybooks = headingXML />
+				<cfset headingcodestruct = #powerObj.ConvertXmlToStruct(ToString(myBooks), structnew())# />
+				<cfset headingcodequery = QueryNew("headingcode,title","varchar,varchar") />
+				
+				<cfloop from="1" to="#ArrayLen(chkarrNodes)#" index="i">
+					<cfset QueryAddRow(headingcodequery) />
+					<cfif IsArray(headingcodestruct.Reports.Report.Headings.Heading[i].Txts.Txt)>
+						<cfloop from="1" to="#ArrayLen(headingcodestruct.Reports.Report.Headings.Heading[i].Txts.Txt)#"  index="j">
+							<cfif langcode eq 'en'>
+								<cfif headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["_attributes"]["LanguageCode"] neq 'en'>
+									<cfcontinue>
+								</cfif>
+							<cfelse>
+								<cfif headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["_attributes"]["LanguageCode"] eq 'en'>
+									<cfcontinue>
+								</cfif>
+							</cfif>
+							<cfset QuerySetCell(headingcodequery,"headingcode","#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["_attributes"]["HeadingCode"]#") />
+							<cfset QuerySetCell(headingcodequery,"title","#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["Title"]#") />
+						</cfloop>
+					<cfelse>
+						<cfset QuerySetCell(headingcodequery,"headingcode","#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["_attributes"]["HeadingCode"]#") />
+						<cfset QuerySetCell(headingcodequery,"title","#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"]["Title"]#") />
+					</cfif>
+				</cfloop>
+				<cfquery dbtype="query" name = "headingcodequery">
+					Select * from headingcodequery order by headingcode 
+				</cfquery> 
+			</cfoutput>	
+				
+				
+				
+		 <cfoutput>	
+			<cfset qn_new = QueryNew("headingcode,qn,qnguide,qnregid,qnversioninfo,qntitle,qnlink,qnHeadingcode,qnSortIndex","varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar")>
+			
+			<cfloop from="1" to="#ArrayLen(arrNodes)#" index="j"> <!--- Code By Giri Oct 2016--->
+				<cfset QueryAddRow(qn_new) />
+				<cfset regidlist="">
+				<cfset QuerySetCell(qn_new,"headingcode","#left(arrNodes[j]["qn:HeadingCode"].xmltext,4)#") />
+				
+				<cfloop from="1" to="#ArrayLen(arrNodes[j]["qn:Txts"]["qn:Txt"])#"  index="i">
+					<cfif langcode eq arrNodes[j]["Txts"]["Txt"][i].XmlAttributes.LanguageCode >
+						<cfset QuerySetCell(qn_new,"qn","#arrNodes[j]["qn:Txts"]["qn:Txt"][i]["qn:Qn"].xmltext#")>
+						<cfset QuerySetCell(qn_new,"qnguide","#arrNodes[j]["qn:Txts"]["qn:Txt"][i]["qn:GuideNote"].xmltext#") />
+						<cfset QuerySetCell(qn_new,"qnversioninfo","#arrNodes[j]["qn:Txts"]["qn:Txt"][i]["qn:Revisions"]["qn:VersionInfo"]["qn:Version"].xmltext#") />
+						<cfloop from="1" to="#ArrayLen(arrNodes[j]["qn:RltdRegs"]["qn:Reg"])#"  index="k">
+							<cfset regidlist= ListAppend(regidlist,"#arrNodes[j]["qn:RltdRegs"]["qn:Reg"][k]["qn:RegID"].xmltext#")>
+						</cfloop>
+						<cfset QuerySetCell(qn_new,"qnregid","#regidlist#") />
+						<cfset QuerySetCell(qn_new,"qnHeadingcode","#arrNodes[j]["qn:HeadingCode"].xmltext#")>
+						<cfset QuerySetCell(qn_new,"qnSortIndex","#arrNodes[j]["qn:SortIndex"].xmltext#")>
+					</cfif>
+				</cfloop>
+			</cfloop>
+			
+			<cfset qn_reg = QueryNew("Regid,Regtitle,regVersion,regLink","varchar,varchar,varchar,varchar")> <!--- Code By Giri Oct 2016--->
+			<cfloop from="1" to="#ArrayLen(chkRegArrNodes)#" index="j">
+			<cfset QueryAddRow(qn_reg) />
+				<cfloop from="1" to="#ArrayLen(chkRegArrNodes[j]["lg:Txts"]["lg:Txt"])#"  index="i">
+					<cfif langcode eq chkRegArrNodes[j]["Txts"]["Txt"][i].XmlAttributes.LanguageCode >
+						<cfset QuerySetCell(qn_reg,"regID", "#chkRegArrNodes[j]["lg:RegId"].xmltext#")/>
+						<cfset QuerySetCell(qn_reg,"regTitle","#chkRegArrNodes[j]["lg:Txts"]["lg:Txt"][i]["lg:Title"].xmltext#")/>
+						<cfset QuerySetCell(qn_reg,"regVersion","#chkRegArrNodes[j]["lg:Txts"]["lg:Txt"][i]["lg:Revisions"]["lg:VersionInfo"]["lg:Version"].xmltext#")/>
+						<cfset QuerySetCell(qn_reg,"regLink","#chkRegArrNodes[j]["lg:Link"].xmltext#")/>
+					</cfif>	
+				</cfloop>
+			</cfloop>
+			
+			<cfset p=1>
+			 <cfloop query="qn_new" startrow="1" endrow="#qn_new.recordcount#"> <!--- Code By Giri Oct 2016--->
+				<cfif qn_new.qnregid neq "">
+					<cfquery dbtype="query" name="qn_neww">
+						Select * from qn_reg 
+						where regid in (#qn_new.qnregid#) order by regid desc
+					</cfquery> 
+				</cfif>
+				<cfif qn_neww.Recordcount gt 0>
+					<cfset titlelist=ValueList(qn_neww.regtitle,"||")>
+					<cfset linklist=ValueList(qn_neww.reglink,"||")>
+					<cfset regid=ListSort(ValueList(qn_neww.regid),"Numeric","ASC")>
+					<cfset qnnewregid=ListSort(qn_new.qnregid,"Numeric","ASC")>
+					<cfif regid eq qnnewregid>
+						<cfset QuerySetCell(qn_new,"qntitle","#titlelist#",p) />
+						<cfset QuerySetCell(qn_new,"qnlink","#linklist#",p) />
+					</cfif>
+				</cfif>	
+				<cfset p=p+1>
+			</cfloop>	
+			
+			
+				<div id="step3start">
+					<cfloop from="1" to="#ArrayLen(chkarrNodes)#" index="i">
+						<cfif Len(headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["_attributes"]["HeadingCode"]) eq 2>
+							<cfif IsArray(headingcodestruct.Reports.Report.Headings.Heading[i].Txts.Txt)>
+								<cfloop from="1" to="#ArrayLen(headingcodestruct.Reports.Report.Headings.Heading[i].Txts.Txt)#"  index="j">
+									<cfif langcode eq 'en'>
+										<cfif headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["_attributes"]["LanguageCode"] neq 'en'>
+											<cfcontinue>
+										</cfif>
+									<cfelse>
+										<cfif headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["_attributes"]["LanguageCode"] eq 'en'>
+											<cfcontinue>
+										</cfif>
+									</cfif>
+									
+									<div class="panel panel-default">
+										<div class="panel-heading">Mapping of xml data to Auditmodule Table</div>
+										SortNo: <font color="red">0</font><BR>
+										<div class="panel-body">
+										Module: <font color="red">#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["Title"]# (#countryname#)</font><br>
+										EHSType: <font color="red">#ehstype#</font><BR>
+										FileSpec: <font color="red"></font><br>
+										FindingTbl: <font color="red"></font><br>
+										LastMod: <font color="red">#DateFormat(RDate, "mmm-dd-yyyy")#</font> <br>
+										Resourcelink: <font color="red"></font>    <br>
+										EnflexURL: <font color="red"></font><br>
+										BNAURL: <font color="red"></font><br>
+										CrossRef: <font color="red"></font><br>
+										AnsType: <font color="red">1</font><br>
+										BusModApp: <font color="red">1</font><br>
+										Introduction: <font color="red">1</font><br>
+										Rulebook: <font color="red">1</font><br>
+										Applicability: <font color="red"></font><br>
+										GEQn: <font color="red">1</font><br>
+										Archive: <font color="red">0</font><br>
+										Module_ID: <font color="red"></font><br>
+										ReportGroup: <font color="red">#Listfirst(headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["Title"]," ")#</font><br>
+										AuditPrep: <font color="red"></font><br>
+										Frequency: <font color="red"></font><br>
+										Default_DueDate: <font color="red"></font> <br>
+										Primary_Module_ID: <font color="red"></font><br>
+										Targeted: <font color="red">1</font><br>
+										EnableSharing: <font color="red">0</font><br>
+										Provider: <font color="red">is licensed by #CompanyLabel# from ENHESA</font><br>
+										AllowAdhocInspection: <font color="red">0</font> <br>
+										LastCallDate: <font color="red">#now()#</font> <br>
+										Topic: <font color="red"></font> <br>
+										</div>
+									</div>
+
+
+									
+									<cfif insertData eq 'true'>
+										 Inserting auditmodule....
+									  	   <cfquery name="insertintoauditmodule" datasource="CC_DEMOTEST">
+											insert into auditmodule
+											(SortNo
+											,Module
+											,EHSType
+											,FileSpec
+											,FindingTbl
+											,LastMod
+											,Resourcelink
+											,EnflexURL
+											,BNAURL
+											,CrossRef
+											,AnsType
+											,BusModApp
+											,Introduction
+											,Rulebook
+											,Applicability
+											,GEQn
+											,Archive
+											,ReportGroup
+											,AuditPrep
+											,Frequency
+											,Default_DueDate
+											,Primary_Module_ID
+											,Targeted
+											,EnableSharing
+											,Provider
+											,AllowAdhocInspection
+											,LastCallDate
+											,Topic)
+											VALUES(
+											0
+											,N'#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["Title"]# (#countryname#)'
+											,N'#ehstype#'
+											,NULL
+											,NULL
+											,#createODBCDate(RDate)#
+											,NULL
+											,NULL
+											,NULL
+											,NULL
+											,1
+											,1
+											,1
+											,1
+											,NULL
+											,1
+											,0
+											,N'#Listfirst(headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"][j]["Title"]," ")#'
+											,NULL
+											,N'Biennial (Next Year)'
+											,NULL
+											,NULL
+											,1
+											,0
+											,'is licensed by #CompanyLabel# from ENHESA'
+											,0
+											,#now()#
+											,NULL) 
+										</cfquery>    
+									</cfif>
+								</cfloop>
+							<cfelse>
+								<div class="panel panel-default">
+									<div class="panel-heading">Mapping of xml data to Auditmodule Table</div>
+									<div class="panel-body">
+									SortNo: <font color="red">0</font><BR>
+									Module: <font color="red">#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"]["Title"]# (#countryname#)</font><br>
+									EHSType: <font color="red">#ehstype#</font><BR>
+									FileSpec: <font color="red"></font><br>
+									FindingTbl: <font color="red"></font><br>
+									LastMod: <font color="red">#DateFormat(RDate, "mmm-dd-yyyy")#</font> <br>
+									Resourcelink: <font color="red"></font>    <br>
+									EnflexURL: <font color="red"></font><br>
+									BNAURL: <font color="red"></font><br>
+									CrossRef: <font color="red"></font><br>
+									AnsType: <font color="red">1</font><br>
+									BusModApp: <font color="red">1</font><br>
+									Introduction: <font color="red">1</font><br>
+									Rulebook: <font color="red">1</font><br>
+									Applicability: <font color="red"></font><br>
+									GEQn: <font color="red">1</font><br>
+									Archive: <font color="red">0</font><br>
+									Module_ID: <font color="red"></font><br>
+									ReportGroup: <font color="red">#Listfirst(headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"]["Title"]," ")#</font><br>
+									AuditPrep: <font color="red"></font><br>
+									Frequency: <font color="red"></font><br>
+									Default_DueDate: <font color="red"></font> <br>
+									Primary_Module_ID: <font color="red"></font><br>
+									Targeted: <font color="red">1</font><br>
+									EnableSharing: <font color="red">0</font><br>
+									Provider: <font color="red">is licensed by #CompanyLabel# from ENHESA</font><br>
+									AllowAdhocInspection: <font color="red">0</font> <br>
+									LastCallDate: <font color="red">#now()#</font> <br>
+									Topic: <font color="red"></font> <br>
+								</div>
+							</div>
+
+								<cfif insertData eq 'true'>
+								  Inserting auditmodule.... 
+								  <cfquery name="insertintoauditmodule" datasource="CC_DEMOTEST">
+										insert into auditmodule
+										(SortNo
+										,Module
+										,EHSType
+										,FileSpec
+										,FindingTbl
+										,LastMod
+										,Resourcelink
+										,EnflexURL
+										,BNAURL
+										,CrossRef
+										,AnsType
+										,BusModApp
+										,Introduction
+										,Rulebook
+										,Applicability
+										,GEQn
+										,Archive
+										,ReportGroup
+										,AuditPrep
+										,Frequency
+										,Default_DueDate
+										,Primary_Module_ID
+										,Targeted
+										,EnableSharing
+										,Provider
+										,AllowAdhocInspection
+										,lastcalldate
+										,topic)
+										VALUES(
+										0
+										,N'#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"]["Title"]# (#countryname#)'
+										,N'#ehstype#'
+										,NULL
+										,NULL
+										,#createODBCDate(RDate)#
+										,NULL
+										,NULL
+										,NULL
+										,NULL
+										,1
+										,1
+										,1
+										,1
+										,NULL
+										,1
+										,0
+										,N'#Listfirst(headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"]["Title"]," ")#'
+										,NULL
+										,N'Biennial (Next Year)'
+										,NULL
+										,NULL
+										,1
+										,0
+										,'is licensed by #CompanyLabel# from ENHESA'
+										,0
+										,#now()# 
+										,NULL) 
+									</cfquery>   
+								</cfif> 
+							</cfif>
+							<!---       Module: <font color="red">#headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["Txts"]["Txt"]["Title"]# (#countryname#)</font><br>--->
+						</cfif>
+					</cfloop>
+					<cfloop from="1" to="#ArrayLen(chkarrNodes)#" index="i">
+						<cfset headingcode = headingcodestruct["Reports"]["Report"]["Headings"]["Heading"][i]["_attributes"]["HeadingCode"]>
+						<cfif len(headingcode) eq 4>
+							<cfquery dbtype="query" name = "headingcodequery1">
+								Select * from headingcodequery
+								where headingcode = '#left(headingcode,"2")#'
+							</cfquery> 
+							
+							<cfquery dbtype="query" name = "headingcodequery2">
+								Select * from headingcodequery
+								where headingcode = '#left(headingcode,"4")#'
+							</cfquery>
+							<cfquery dbtype="query" name = "qn_new1">
+								Select * from qn_new
+								where headingcode = '#left(headingcode,"4")#' order by HeadingCode
+							</cfquery> 
+													
+
+							<cfif qn_new1.qn neq ''>
+								<cfloop query="qn_new1">
+									<div class="panel panel-default">
+										<div class="panel-heading">Mapping of xml to AuditQn Table</div>
+										<div class="panel-body">
+										Module:  <font color="red">#headingcodequery1.title# (#countryname#)</font><BR>
+										<cfif right(left(headingcode,"4"),"2") lte 10>
+										SectionNo:  <font color="red">#right(left(headingcode,"4"),"1")#</font><BR>
+										<cfelse>
+										SectionNo:  <font color="red">#right(left(headingcode,"4"),"2")#</font><BR>
+										</cfif>
+										Section:  <font color="red">#headingcodequery2.title#</font><BR>
+										Question: <font color="red">#qn_new1.qn#</font><BR>
+										<cfif right(left(headingcode,"4"),"2") lte 10>
+										QnID: <font color="red">#right(left(headingcode,"4"),"1")#.#qn_new1.currentrow#</font><BR>
+										QnSortNo: <font color="red">#qn_new1.qnSortIndex#</font><BR>
+										<cfelse>
+										QnID: <font color="red">#right(left(headingcode,"4"),"2")#.#qn_new1.currentrow#</font><BR>
+										QnSortNo: <font color="red">#qn_new1.qnSortIndex#</font><BR>
+										</cfif>
+										<cfset RegCit="">
+										 <cfif listlen(qn_new1.qntitle,"||") GT 1>
+											<cfloop from="1" to="#ListLen(qn_new1.qntitle,"||")#" index="i">
+												<cfset RegCit =RegCit & '<a href="#ListGetAt(qn_new1.qnlink,i,"||")#" target="_blank">#ListGetAt(qn_new1.qntitle,i,"||")#</a><BR>'>
+											</cfloop>
+										<cfelse>
+											<cfset RegCit = RegCit & '<a href="#qn_new1.qnlink#" target="_blank">#qn_new1.qntitle#</a><BR>'>
+										</cfif>
+										<cfif len(Regcit) LTE 750>
+											Regcit:<font color="red">#RegCit#</font><BR>	
+										<cfelse>
+											Regcit:<font color="black">Regcit Length Exceeds 750 characters, This has been added to GuideNote</font><BR>	
+										</cfif>
+										CrossRef: <font color="red">NULL</font><BR>
+										Guide: <font color="red">#qn_new1.qnguide#</font><BR>
+										RegYN: <font color="red">1</font><BR>
+										<cfif len(Regcit) LTE 750>
+											GuideNote: <font color="red">1</font><BR>
+										<cfelse>
+											GuideNote: <font color="red">#RegCit#</font><BR>
+										</cfif>
+										New: <font color="red">0</font><BR>
+										GEQn: <font color="red">0</font><BR>
+										BusQn: <font color="red">0</font><BR>
+										BusApp: <font color="red">1</font><BR>
+										JumpID: <font color="red">NULL</font><BR>
+										QnWeight: <font color="red">1</font><BR>
+										RepeatStartID: <font color="red">NULL</font><BR>
+										RepeatEndID: <font color="red">NULL</font><BR>
+										LastUpdate: <font color="red">#NOW()#</font><BR>
+										FindingType: <font color="red">NULL</font><BR>
+										State: <font color="red">Federal</font><BR>
+										CrossRefID: <font color="red">NULL</font><BR>
+										AddressedBy: <font color="red">0</font><BR>
+										AddressedByDefault: <font color="red">NULL</font><BR>
+										AddressedByAnsText: <font color="red">NULL</font><BR>
+										BLA: <font color="red">0</font><BR>
+										CopiedFromId: <font color="red">NULL</font><BR>
+										MajorHazard: <font color="red">NULL</font><BR>
+										CriticalControl: <font color="red">NULL</font><BR>
+										QnVersion: <font color="red">#qn_new1.qnversioninfo#</font><BR>
+										SubSection: <font color="red">#qn_new1.qnHeadingcode#</font><BR>
+									</div>
+								</div>
+
+									<cfif insertData eq 'true'>
+									  Inserting auditqn....
+									  	 <cfquery name="insertintoAUDITQN" datasource="CC_DEMOTEST">
+											insert into auditqn(
+											Module
+											,SectionNo
+											,Section
+											,QnID
+											,QnSortNo
+											,Question
+											,RegCit
+											,CrossRef
+											,Guide
+											,RegYN
+											,GuideNote
+											,New
+											,GEQn
+											,BusQn
+											,BusApp
+											,JumpID
+											,QnWeight
+											,RepeatStartID
+											,RepeatEndID
+											,LastUpdate
+											,FindingType
+											,State
+											,CrossRefID
+											,AddressedBy
+											,AddressedByDefault
+											,AddressedByAnsText
+											,BLA
+											,CopiedFromId
+											,MajorHazard
+											,CriticalControl
+											,QnVersion
+											,SubSection)
+											VALUES(
+											N'#headingcodequery1.title# (#countryname#)'
+											<cfif right(left(headingcode,"4"),"2") lte 10>
+											,N'#right(left(headingcode,"4"),"1")#'
+											<cfelse>
+											,N'#right(left(headingcode,"4"),"2")#'
+											</cfif>
+											,N'#headingcodequery2.title#'
+											<cfif Len(qn_new1.currentrow) eq 1>
+												<cfset variables.currentrow = '0' & qn_new1.currentrow>
+											<cfelse>
+												<cfset variables.currentrow = qn_new1.currentrow>
+											</cfif>
+											<cfif right(left(headingcode,"4"),"2") lte 10>
+											,'#right(left(headingcode,"4"),"1")#.#variables.currentrow#'
+											,'#qn_new1.qnSortIndex#'
+											<cfelse>
+											,'#right(left(headingcode,"4"),"2")#.#variables.currentrow#'
+											,'#qn_new1.qnSortIndex#'
+											</cfif>
+											,N'#qn_new1.qn#'
+											,N'#Regcit#'
+											,NULL
+											,N'#qn_new1.qnguide#'
+											,1
+											,1
+											,0
+											,0
+											,0
+											,1
+											,NULL
+											,1
+											,NULL
+											,NULL
+											,#NOW()#
+											,NULL
+											,'Federal'
+											,NULL
+											,0
+											,NULL
+											,NULL
+											,0
+											,NULL
+											,NULL
+											,NULL
+											,'#qn_new1.qnversioninfo#' 
+											,'#qn_new1.qnHeadingcode#')
+										</cfquery>  
+									</cfif>
+
+								<!--- 	REGCIT: #qn_new1.qnregid# #regID# #regTitle# #regVersion# #regLink#
+								 --->
+									<div  class="panel panel-default">
+										<div class="panel-heading">Mapping of xml to RegCit Table</div>
+										<div class="panel-body">
+										Regid: <font color="red">#qn_new1.qnregid# </font><BR />
+										RegCitName: <font color="red">#qn_new1.qntitle# </font><BR />
+										RegCitCode: <font color="red">#qn_new1.qnversioninfo#</font><BR>
+										</div>
+									</div>
+
+									<cfif insertData eq 'true'>
+									  Inserting regcit... 
+										<cfquery name="insertIntoLtbRegCit" datasource="CC_DEMOTEST">
+											insert into ltbRegCit(
+											RegCitName
+											,RegCitCode)
+											VALUES(
+												N'#qn_new1.qntitle#',
+												N'#qn_new1.qnversioninfo#'
+											) 
+										</cfquery>    
+									</cfif>
+								</cfloop>
+							</cfif>
+						</cfif>
+					</cfloop>	
+			</div>
+		</cfoutput> 
+			<cfset Scrng_qn_title = QueryNew("BaseHeadingCode,HeadingCode,Type,QnTitle","varchar,varchar,varchar,varchar")> <!--- Code by Giri Dec 2016 for Screening Questions and their Heading Codes and Titles--->
+				<cfloop from="1" to="#ArrayLen(ScreeningQns)#" index="i">
+					<cfset QueryAddRow(Scrng_qn_title)/>
+					<cfloop from="1" to="#ArrayLen(ScreeningQns[i]["sq:RltdHeadings"])#" index="j">
+						<cfset QuerySetCell(Scrng_qn_title,"HeadingCode","#ScreeningQns[i]["sq:RltdHeadings"][j]["sq:HeadingCode"].xmltext#")>
+					</cfloop>
+					<cfloop from="1" to="#ArrayLen(ScreeningQns[i]["sq:Txts"]["sq:Txt"])#" index="p">
+						<cfif langcode eq ScreeningQns[i]["sq:Txts"]["sq:Txt"][p].XmlAttributes.LanguageCode> 
+							<cfset QuerySetCell(Scrng_qn_title,"QnTitle","#ScreeningQns[i]["sq:Txts"]["sq:Txt"][p]["sq:ScrngQnTitle"].xmltext#") />
+						</cfif> 
+					</cfloop>	 
+				</cfloop> 
+				
+				<cfset Scrng_qn = QueryNew("Module,BaseHeadingCode,HeadingCode,Type,QnTitle,QnNo,Qnsection,ProcessTier","varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar")>
+				<cfloop from="1" to="#ArrayLen(ScreeningQns)#" index="i">
+					<cfloop from="1" to="#ArrayLen(ScreeningQns[i]["sq:RltdHeadings"]["sq:HeadingCode"])#" index="j">
+						<cfset QueryAddRow(Scrng_qn)/>
+						<cfset QuerySetCell(Scrng_qn,"BaseHeadingCode","#ScreeningQns[i]["sq:BaseHeadingCode"].xmltext#") />
+						<cfset QuerySetCell(Scrng_qn,"HeadingCode","#ScreeningQns[i]["sq:RltdHeadings"]["sq:HeadingCode"][j].xmltext#")>
+						<cfif Len(#ScreeningQns[i]["sq:RltdHeadings"]["sq:HeadingCode"][j].xmltext#) eq "2">
+							<cfset Type="Checklist">
+						<cfelseif 	Len(#ScreeningQns[i]["sq:RltdHeadings"]["sq:HeadingCode"][j].xmltext#) eq "4">
+							<cfset Type="Section">
+						<cfelseif 	Len(#ScreeningQns[i]["sq:RltdHeadings"]["sq:HeadingCode"][j].xmltext#) eq "6">	
+							<cfset Type="subsection">
+						</cfif>
+						<cfset QuerySetCell(Scrng_qn,"Type",Type)> 
+					</cfloop>
+				</cfloop>
+				
+				<cfset k=1>
+				<cfloop query = "Scrng_qn" startrow="1" endrow="#Scrng_qn.recordcount#"> <!--- This Block of code is to get the Screening titles from XML, Giri Dec 2016--->
+					<cfquery dbtype="query" name="ScrngQN_New">
+						Select QnTitle as Title from  Scrng_qn_title
+						where HeadingCode = '#Scrng_qn.HeadingCode#' order by Headingcode ;
+					</cfquery> 
+					
+					<cfif ScrngQN_New.Recordcount GT 0>
+						<cfset QuerySetCell(Scrng_qn,"Qntitle","#ScrngQN_New.Title#",k) />
+					</cfif>		
+				<cfset k=k+1>	
+				</cfloop>
+				
+				 <cfset G = 1>
+				<cfloop query = "Scrng_qn" startrow="1" endrow="#Scrng_qn.recordcount#"> <!--- This Block of code is to get the Heading Names for Heading Codes that do no have Screening Titles from XML,Giri Dec 2016--->
+					<cfquery dbtype="query" name="ScrngQN_New">
+						Select Title,Headingcode from  headingcodequery
+						where HeadingCode = '#Scrng_qn.HeadingCode#' order by Headingcode ;
+					</cfquery> 
+					
+					<cfset BaseCode= Left(Scrng_qn.HeadingCode,2)>
+					<cfset QuerySetCell(Scrng_qn,"BaseHeadingCode","#BaseCode#",G) />
+										
+					<cfif ScrngQN_New.Headingcode eq Scrng_qn.BaseHeadingCode>
+						<cfset QuerySetCell(Scrng_qn,"Module","#ScrngQN_New.Title# (#countryname#)",G) />
+					</cfif>
+				<cfset G=G+1>	
+				</cfloop> 
+			
+				<cfset K=1>
+				<cfloop query="Scrng_qn" startrow="1" endrow="#Scrng_qn.Recordcount#">
+					<cfquery name="QHeadingCode" dbtype="Query">
+						Select * from HeadingCodeQuery where HeadingCode='#Scrng_qn.BaseHeadingCode#';
+					</cfquery>
+					<cfset QuerySetCell(Scrng_qn,"Module","#QHeadingCode.Title# (#countryname#)",K)/>
+					<cfset K=K+1>
+				</cfloop>
+				
+				 <cfquery name="Scrng_qn" dbtype="Query">
+					Select distinct BaseHeadingCode,HeadingCode, Qntitle, Type,[Module],QnNo,Qnsection,ProcessTier from Scrng_qn 
+				</cfquery> 		
+			
+			<cfoutput query="Scrng_qn">
+				<cfoutput group ="BaseHeadingCode">
+					<cfoutput group ="Type">
+						<cfif Scrng_qn.Type eq "Checklist">
+							<cfset Scrng_qn.QnNo = "0">
+						<cfelseif Scrng_qn.Type eq "Section">
+							<cfset TempQnNo = Right(#Scrng_qn.HeadingCode#,"2")>
+							<cfif TempQnNo GT 9>
+								<cfset Scrng_qn.QnNo = TempQnNo>	
+							<cfelse>	
+								<cfset TempQnNo = Replace(TempQnNo,"0","","All")>
+								<cfset Scrng_qn.QnNo = TempQnNo>	
+							</cfif>	
+						<cfelseif Scrng_qn.Type eq "subsection">
+							<cfset TempQnNo = Right(#Scrng_qn.HeadingCode#,"3")>
+							<cfset TempQnNo = Replace(TempQnNo,"0","","All")>
+							<cfset Scrng_qn.QnNo = TempQnNo>	
+							<cfset Scrng_qn.ProcessTier = Mid(#Scrng_qn.HeadingCode#,4,1)>
+						</cfif>
+					</cfoutput>
+				</cfoutput>
+			</cfoutput>
+			
+			<cfquery name="Scrng_qn" dbtype="query">
+				Select * from Scrng_qn where Qntitle is not null 
+			</cfquery>
+			
+		<cfoutput>
+			<cfset T=1>
+			<cfloop query="Scrng_qn" startrow="1" EndRow="#Scrng_qn.Recordcount#">
+				<cfquery name="qGetQnid" Datasource="CC_DEMOTEST">
+					select (Concat(( Replace(Qnid, '.', 'Q') ), (Replace(qnversion, '.', 'V')))) AS Qnid  from auditqn with (nolock) where module in 
+					(select module from auditmodule with (nolock) where ehstype = N'#ehstype#') 
+									
+					<cfif Scrng_qn.type eq "Section">
+					and  substring(subsection,1,4) = '#Scrng_qn.HeadingCode#'
+					<cfelse>
+					and subsection = '#Scrng_qn.HeadingCode#'
+					</cfif>
+				</cfquery>
+				<cfif qGetQnid.Recordcount GT 0>
+					<cfset QuerySetCell(Scrng_qn,"qnsection","#ValueList(qGetQnid.Qnid,",")#",T) />
+				</cfif>
+				<cfset T=T+1>
+			</cfloop>
+			
+			<cfloop Query="Scrng_qn" startrow="1" endrow="#Scrng_qn.Recordcount#">
+				<div class="panel panel-default">
+					<div class="panel-heading">Mapping of PowerApplicScreen</div>
+					<div class="panel-body">
+					Module: <font color="red">#Scrng_qn.Module#</font><br>
+					Type: <font color="red">#Scrng_qn.Type#</font><BR>
+					QuestionNo: <font color="red">#Scrng_qn.QnNo#</font><br>
+					Question: <font color="red">#Scrng_qn.Qntitle#</font><br>
+					MXWasChecked: <font color="red">0</font> <br>
+					MXHasDouble: <font color="red">0</font>    <br>
+					MXWasUpdated: <font color="red">0</font><br>
+					MXEncode: <font color="red">Null</font><br>
+					UpdateDate: <font color="red">#now()#</font><br>
+					qnsection: <font color="red">#Scrng_qn.Qnsection#</font><br>
+					ProcessTier: <font color="red">#Scrng_qn.ProcessTier#</font><br>
+					</div>
+				</div>	
+			  <cfquery name="insertintoPowerApplicscreen" datasource="CC_DEMOTEST">
+					insert into PowerApplicscreen
+					(Module
+					,Type
+					,QuestionNo
+					,Question
+					,MXWasChecked
+					,MXHasDouble
+					,MXWasUpdated
+					,MXEncode
+					,UpdateDate
+					,qnsection
+					,ProcessTier)
+					VALUES(
+					<cfqueryparam value="#Scrng_qn.Module#" cfsqltype="CF_SQL_VARCHAR">
+					,<cfqueryparam value="#Scrng_qn.Type#" cfsqltype="CF_SQL_VARCHAR">
+					,<cfqueryparam value="#Scrng_qn.QnNo#" cfsqltype="CF_SQL_VARCHAR">
+					,<cfqueryparam value="#Scrng_qn.Qntitle#" cfsqltype="CF_SQL_VARCHAR">
+					,0
+					,0
+					,0
+					,Null
+					,<cfqueryparam value="#now()#" cfsqltype="CF_SQL_DATE">
+					,<cfqueryparam value="#Scrng_qn.Qnsection#" cfsqltype="CF_SQL_VARCHAR">
+					,<cfqueryparam value="#Scrng_qn.ProcessTier#" cfsqltype="CF_SQL_VARCHAR">
+					) 
+				</cfquery>   
+			</cfloop> 
+		</cfoutput>		
+			<div class="panel panel-default">
+				<div class="panel-heading">Updating PowerApplicscreen for columns Qnsection,ProcessTier.</div>
+			</div>
+		<cfquery name="qGetModules" datasource="CC_DEMOTEST">
+			select distinct module from powerapplicscreen with (nolock) where module like '%#countryname#)'
+		</cfquery> 
+		
+		 <cfoutput query="qGetModules">
+			<cfquery name="qGetSSwithnoSection" datasource="CC_DEMOTEST"> <!--- get Subsections that dont have a section--->
+				with CTEProcessTier as 
+				(Select distinct processtier,module from powerapplicscreen with (nolock) where type='subsection' and module = N'#qGetModules.Module#'),
+				CTEQuestionNo as 
+				(Select distinct questionno,module from powerapplicscreen with (nolock) where module = N'#qGetModules.Module#' and type='Section'),
+				CTESubSection as 
+				(Select * from CTEProcessTier where processtier not in (select questionNo from CTEQuestionNo))
+				select * from CTESubSection
+			</cfquery>
+			
+			<cfset Processtier = ValueList(qGetSSwithnoSection.processtier)>
+			<cfset Module = qGetSSwithnoSection.Module>
+			<cfif Processtier neq "" and Processtier does not contain "-">
+				  <cfquery name="qUpdateProcessTier" Datasource="CC_DEMOTEST">
+					update powerapplicscreen set processtier = '-' + processtier where module=N'#Module#' and type='subsection' and processtier in (#Processtier#)
+				</cfquery>  
+			</cfif> 
+		</cfoutput>
+		 <div class="panel panel-default">
+			<div class="panel-heading">Data Inserted and Updated in PowerApplicscreen</div>
+		</div>  
+	</div>
+</body>
+</html>
+</cfif>

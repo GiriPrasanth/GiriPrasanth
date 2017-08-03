@@ -1,0 +1,58 @@
+function ApplyAnswersSRG(Iinstance) 
+{
+	var qChecklist = document.getElementById('ChecklistNotApplicable');
+	if ((qChecklist != undefined || qChecklist != null) && qChecklist.value == 1)
+	{
+		document.all.AllNA.checked = true;
+		document.all.AllNA._alert = true;
+		Ext.MessageBox.alert('Applicability Screening', 'Based on the applicability screening answers, all questions of this  checklist are Not Applicable.\n\nBe sure to document Not-Applicability rationale in the Audit General Comments field before saving this checklist.\n\nYou must Save/Update this checklist for the changes to take affect!', function(){document.getElementById('ChecklistNotApplicable').value=0;document.all.AllNA.onclick();});
+	}
+	else
+	{
+		var qnIdArray = new Array();
+		for (var b=1 ; b<=ProcessAnswerArray.length;b++){
+			if(jsArray[b] != undefined || jsArray[b] != null)
+			{
+				jsArray[b] = jsArray[b].replace(/\n|\r/g, "");	
+				qnIdArray[b] = jsArray[b].split(','); //To Convert JS Object into JS Array to get the Question numbers for Process/Industry
+			}		
+		}
+		if (ProcessAnswerArray.length != 0) {
+			for(var j=1; j<=ProcessAnswerArray.length ; j++){
+				if (qnIdArray[j] != null || qnIdArray[j] != undefined ){
+					if (ProcessAnswerArray[j] == 0 && qnIdArray[j].length != 0){
+						for(var i=0 ; i<=qnIdArray[j].length ; i++){
+							var a = document.getElementById('Ans'+qnIdArray[j][i]+'A'); //An Inner Array holding the Question numbers for each Process/Industry
+							if (qnIdArray[j][i] != undefined && qnIdArray[j][i].length > 5)
+							{
+								var TempQn = qnIdArray[j][i] ; 
+								var qnid = TempQn.substring(0,TempQn.indexOf("Q") + 3);
+								var qn = document.getElementById('Q'+qnid);		// qn is the Question id from chklistqn.cfm
+								var guideText = document.getElementById('Txt'+qnid); //guideText is the guide note text id that is used to change the text when answer is screened
+							}
+							else
+							{
+								var qn = document.getElementById('Q'+qnIdArray[j][i]);		// qn is the Question id from chklistqn.cfm
+								var guideText = document.getElementById('Txt'+qnIdArray[j][i]); //guideText is the guide note text id that is used to change the text when answer is screened
+							}
+							
+							if (a != undefined || a != null) {
+								a.checked = true;
+							if 	(qn != undefined || qn != null)
+								qn.Readonly = true;
+								qn.style.display = "none";
+								guideText.style.display="";
+							}
+						}
+					}
+				}
+			}
+		}
+		if (ProcessAnswerArrayY.length >= 1)
+		//ApplyAnswersSRGY();
+		if (document.all.AllNA != null)
+		document.all.AllNA.checked = false;	
+		var sMessage = 'Screening Complete, please proceed with Answering the rest of questions!';
+		Ext.MessageBox.alert('Applicability Screening', sMessage,function(){document.all.AllNA.onclick();});
+	}	
+}		
